@@ -1,38 +1,27 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hilal Checker</title>
 
-<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="css/style.css">
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <div class="header">
   <h1>🌙 Hilal Checker</h1>
-  <p>Accurate Crescent Moon Tracker</p>
+  <p id="waktu">Memuat...</p>
+  <p id="hijri">Memuat...</p>
 </div>
 
 <div class="container">
 
 <div class="card">
-  <h3>🕒 Waktu</h3>
-  <p id="waktu">Memuat...</p>
-  <p id="hijri">Memuat...</p>
-</div>
-
-<div class="card">
-  <h3>📡 Koordinat</h3>
-  <p id="loc">Memuat...</p>
-</div>
-
-<div class="card">
   <h3>📍 Lokasi</h3>
-  <p id="lokasi">Mendeteksi...</p>
+  <p id="lokasi">Memuat...</p>
+  <p id="loc">Memuat...</p>
 </div>
 
 <div class="card">
@@ -46,8 +35,8 @@
 </div>
 
 <div class="card">
-  <h3>📊 Status Hilal</h3>
-  <div id="status" class="status">Menghitung...</div>
+  <h3>📊 Status</h3>
+  <div id="status" class="status">Memuat...</div>
   <p id="prediksi"></p>
 </div>
 
@@ -61,6 +50,7 @@
 
 </div>
 
-<script src="js/app.js?v=9999"></script>
+<script type="module" src="js/app.js"></script>
+
 </body>
 </html>
