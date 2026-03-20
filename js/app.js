@@ -1,4 +1,4 @@
-console.log("APP FINAL - TANPA BENDERA");
+console.log("APP FINAL - LOKASI RAPI");
 
 // ================= GLOBAL =================
 let hijriMonthIndex = 0;
@@ -93,12 +93,33 @@ function getLocation(){
       let data = await res.json();
       let a = data.address || {};
 
-      let parts = [
-        a.village || a.city || "",
-        a.county || "",
-        a.state || "",
-        a.country || ""
-      ].filter(v => v && v.trim() !== "");
+      // ===== FORMAT LOKASI LENGKAP =====
+      let desaKota =
+        a.village ||
+        a.suburb ||
+        a.town ||
+        a.city ||
+        "";
+
+      let kabupaten =
+        a.county ||
+        a.city_district ||
+        a.region ||
+        "";
+
+      let provinsi = a.state || "";
+      let negara = a.country || "";
+
+      let parts = [desaKota, kabupaten, provinsi, negara]
+        .filter(v => v && v.trim() !== "");
+
+      // hapus duplikat
+      parts = [...new Set(parts)];
+
+      // bersihkan kata "Kabupaten" / "Kota"
+      parts = parts.map(p =>
+        p.replace(/^Kabupaten\s|^Kota\s/i, "")
+      );
 
       document.getElementById('lokasi').innerText =
         `${parts.join(', ')}`;
