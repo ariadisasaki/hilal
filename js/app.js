@@ -1,16 +1,88 @@
 let lat, lon;
 
-navigator.geolocation.getCurrentPosition(p=>{
+// ===============================
+// 📍 Ambil GPS + Nama Lokasi
+// ===============================
+navigator.geolocation.getCurrentPosition(async (p)=>{
   lat = p.coords.latitude;
   lon = p.coords.longitude;
 
+  // tampilkan koordinat
   document.getElementById('loc').innerText =
-    `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+    `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 
+  // ambil nama lokasi (reverse geocoding)
+  let lokasiText = "📍Mendeteksi lokasi...";
+  try{
+    let res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+    );
+    let data = await res.json();
+
+    let a = data.address || {};
+
+    // susun lokasi
+    let desa = a.village || a.town || a.city || a.hamlet || "";
+    let kab = a.county || "";
+    let prov = a.state || "";
+    let negara = a.country || "Indonesia";
+
+    // rapikan (hapus kosong & koma berantakan)
+    let parts = [desa, kab, prov, negara]
+      .filter(v => v && v.trim() !== "");
+
+    lokasiText = `📍${parts.join(', ')} 🇮🇩`;
+
+  }catch(e){
+    lokasiText = "📍Lokasi tidak tersedia";
+  }
+
+  document.getElementById('lokasi').innerText = lokasiText;
+
+  // jalankan fitur utama
   main();
   startCam();
+
+  // jalankan jam realtime
+  startClock();
+}, err=>{
+  alert("❌ GPS tidak diizinkan");
+}, {
+  enableHighAccuracy: true,
+  timeout: 10000
 });
 
+
+// ===============================
+// 🕒 JAM REALTIME
+// ===============================
+function startClock(){
+  setInterval(()=>{
+    let now = new Date();
+
+    let hari = now.toLocaleDateString('id-ID', { weekday:'long' });
+    let tanggal = now.toLocaleDateString('id-ID', {
+      day:'numeric',
+      month:'long',
+      year:'numeric'
+    });
+
+    let jam = now.toLocaleTimeString('id-ID');
+
+    document.getElementById('waktu').innerText =
+      `${capitalize(hari)}, ${tanggal} - Pkl. ${jam}`;
+
+  }, 1000);
+}
+
+function capitalize(str){
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+
+// ===============================
+// 🌙 PERHITUNGAN HILAL
+// ===============================
 function main(){
   const d = new Date();
   const jd = (d/86400000) + 2440587.5;
@@ -29,7 +101,6 @@ function main(){
 
   let alt = (Math.sin(moon.lat) * 90);
 
-  // refraksi sederhana
   if(alt > -1){
     alt += 0.016 / Math.tan((alt+7.31/(alt+4.4))*Math.PI/180);
   }
@@ -57,6 +128,10 @@ function main(){
   updateAR(azi, alt);
 }
 
+
+// ===============================
+// 📷 CAMERA AR
+// ===============================
 function startCam(){
   navigator.mediaDevices.getUserMedia({
     video:{ facingMode:'environment' }
@@ -66,6 +141,10 @@ function startCam(){
   });
 }
 
+
+// ===============================
+// 🧭 AR MARKER
+// ===============================
 function updateAR(az, alt){
   const m = document.getElementById('marker');
 
@@ -76,6 +155,10 @@ function updateAR(az, alt){
   m.style.top = y + 'px';
 }
 
+
+// ===============================
+// 🔔 NOTIFIKASI
+// ===============================
 function requestNotif(){
   Notification.requestPermission();
 }
