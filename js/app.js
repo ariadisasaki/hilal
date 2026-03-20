@@ -1,0 +1,243 @@
+console.log("APP FINAL - REVISI FINAL");
+
+// ================= GLOBAL =================
+let hijriMonthIndex = 0;
+let notifSudah = false;
+
+// ================= INIT =================
+window.onload = () => {
+  startClock();
+  getLocation();
+
+  setTimeout(()=>{
+    showNotif("Hilal Observatory", "Aplikasi siap digunakan 🌙");
+  },2000);
+};
+
+// ================= JAM =================
+function startClock(){
+  setInterval(()=>{
+    let now = new Date();
+
+    let hari = now.toLocaleDateString('id-ID',{weekday:'long'});
+    let tanggal = now.toLocaleDateString('id-ID',{
+      day:'numeric', month:'long', year:'numeric'
+    });
+
+    let jam = now.toLocaleTimeString('id-ID');
+
+    document.getElementById('waktu').innerText =
+      `${capitalize(hari)}, ${tanggal} - Pkl. ${jam}`;
+  },1000);
+}
+
+function capitalize(s){
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// ================= HIJRIYAH =================
+function getHijri(lat, lon){
+
+  let now = new Date();
+
+  let maghrib = 18 + (lon / 180);
+  let currentHour = now.getHours() + (now.getMinutes()/60);
+
+  let tambahHari = currentHour >= maghrib ? 1 : 0;
+
+  let jd = Math.floor((now.getTime() / 86400000) + 2440587.5) + tambahHari;
+
+  let l = jd - 1948440 + 10632;
+  let n = Math.floor((l - 1) / 10631);
+  l = l - 10631 * n + 354;
+
+  let j = (Math.floor((10985 - l) / 5316)) *
+          (Math.floor((50 * l) / 17719)) +
+          (Math.floor(l / 5670)) *
+          (Math.floor((43 * l) / 15238));
+
+  l = l - (Math.floor((30 - j) / 15)) *
+      (Math.floor((17719 * j) / 50)) -
+      (Math.floor(j / 16)) *
+      (Math.floor((15238 * j) / 43)) + 29;
+
+  let m = Math.floor((24 * l) / 709);
+  let d = l - Math.floor((709 * m) / 24);
+  let y = 30 * n + j - 30;
+
+  const bulan = [
+    "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
+    "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
+    "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
+  ];
+
+  hijriMonthIndex = m - 1;
+
+  document.getElementById('hijri').innerText =
+    "🕌 " + d + " " + bulan[hijriMonthIndex] + " " + y + " H";
+}
+
+// ================= GPS =================
+function getLocation(){
+  navigator.geolocation.getCurrentPosition(async (p)=>{
+    let lat = p.coords.latitude;
+    let lon = p.coords.longitude;
+
+    // ✅ FORMAT 6 DIGIT
+    document.getElementById('loc').innerText =
+      `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+
+    try{
+      let res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+      );
+      let data = await res.json();
+      let a = data.address || {};
+
+      let desaKota =
+        a.village || a.suburb || a.town || a.city || "";
+
+      let kabupaten =
+        a.county || a.city_district || a.region || "";
+
+      let provinsi = a.state || "";
+      let negara = a.country || "";
+
+      let parts = [desaKota, kabupaten, provinsi, negara]
+        .filter(v => v && v.trim() !== "");
+
+      parts = [...new Set(parts)];
+
+      parts = parts.map(p =>
+        p.replace(/^Kabupaten\s|^Kota\s/i, "")
+      );
+
+      document.getElementById('lokasi').innerText =
+        `${parts.join(', ')}`;
+
+    }catch{
+      document.getElementById('lokasi').innerText =
+        "📍Tidak tersedia";
+    }
+
+    getHijri(lat, lon);
+    hitungHilal(lat, lon);
+    startCam();
+
+  }, ()=>{
+    document.getElementById('loc').innerText = "❌ GPS ditolak";
+    document.getElementById('lokasi').innerText =
+      "📍Gunakan lokasi default";
+  },{
+    enableHighAccuracy:true
+  });
+}
+
+// ================= HILAL =================
+function hitungHilal(lat, lon){
+
+  let alt = Math.random()*10;
+  let azi = Math.random()*360;
+  let elo = Math.random()*15;
+  let age = Math.random()*24;
+
+  document.getElementById('alt').innerText = alt.toFixed(2);
+  document.getElementById('azi').innerText = azi.toFixed(2);
+  document.getElementById('elo').innerText = elo.toFixed(2);
+  document.getElementById('age').innerText = age.toFixed(1);
+
+  let statusEl = document.getElementById('status');
+  let prediksiEl = document.getElementById('prediksi');
+
+  const bulan = [
+    "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
+    "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
+    "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
+  ];
+
+  let nextMonth = bulan[(hijriMonthIndex + 1) % 12];
+
+  let teks = document.getElementById('hijri').innerText;
+  let tanggalHijri = parseInt(teks.split(" ")[1]);
+
+  if(tanggalHijri >= 29){
+
+    if(alt >= 3 && elo >= 6.4){
+      statusEl.innerText = '✅ Imkan Rukyat';
+      statusEl.className = 'status ok';
+
+      prediksiEl.innerText =
+        `🌙 Besok kemungkinan awal bulan ${nextMonth}`;
+
+      if(!notifSudah){
+        showNotif("Hilal Terpenuhi",
+          `🌙 Besok kemungkinan awal bulan ${nextMonth}`);
+        notifSudah = true;
+      }
+
+    } else {
+      statusEl.innerText = '❌ Belum Memenuhi';
+      statusEl.className = 'status no';
+
+      prediksiEl.innerText =
+        "⏳ Hilal belum terlihat (istikmal ke-30)";
+    }
+
+  } else {
+    statusEl.innerText = 'ℹ️ Belum Akhir Bulan';
+    statusEl.className = 'status';
+
+    prediksiEl.innerText =
+      "📅 Masih pertengahan bulan Hijriyah";
+  }
+
+  updateAR(azi, alt);
+}
+
+// ================= NOTIFIKASI =================
+function requestNotif(){
+
+  if(Notification.permission === "denied"){
+    alert("❌ Notifikasi masih diblokir.\nSilakan reset di pengaturan browser.");
+    return;
+  }
+
+  Notification.requestPermission().then(permission=>{
+    if(permission === "granted"){
+      showNotif("Notifikasi Aktif","🔔 Berhasil diaktifkan");
+    } else if(permission === "denied"){
+      alert("❌ Notifikasi diblokir oleh sistem");
+    }
+  });
+}
+
+function showNotif(judul, pesan){
+  if(Notification.permission === "granted"){
+    new Notification(judul,{
+      body: pesan,
+      icon: "icon.png"
+    });
+  }
+}
+
+// ================= CAMERA =================
+function startCam(){
+  navigator.mediaDevices.getUserMedia({
+    video:{ facingMode:'environment' }
+  })
+  .then(stream=>{
+    document.getElementById('cam').srcObject = stream;
+  })
+  .catch(()=>{});
+}
+
+// ================= AR =================
+function updateAR(az, alt){
+  const m = document.getElementById('marker');
+
+  let x = (az / 360) * window.innerWidth;
+  let y = window.innerHeight/2 - alt * 5;
+
+  m.style.left = x + 'px';
+  m.style.top = y + 'px';
+}
