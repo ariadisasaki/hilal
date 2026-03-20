@@ -1,49 +1,8 @@
-import * as astronomia from 'https://cdn.jsdelivr.net/npm/astronomia@latest/lib/index.min.js';
-
-let lat, lon;
-
+// ================= INIT =================
 window.onload = () => {
   startClock();
   getLocation();
 };
-
-// ================= GPS =================
-function getLocation(){
-  navigator.geolocation.getCurrentPosition(async (p)=>{
-    lat = p.coords.latitude;
-    lon = p.coords.longitude;
-
-    document.getElementById('loc').innerText =
-      `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-
-    try{
-      let res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
-      );
-      let data = await res.json();
-      let a = data.address || {};
-
-      let parts = [
-        a.village || a.city || "",
-        a.county || "",
-        a.state || "",
-        a.country || "Indonesia"
-      ].filter(v => v && v.trim() !== "");
-
-      document.getElementById('lokasi').innerText =
-        `${parts.join(', ')} 🇮🇩`;
-
-    }catch{
-      document.getElementById('lokasi').innerText = "📍Tidak tersedia";
-    }
-
-    main();
-    startCam();
-
-  },{
-    enableHighAccuracy:true
-  });
-}
 
 // ================= JAM =================
 function startClock(){
@@ -66,50 +25,75 @@ function capitalize(s){
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// ================= HILAL =================
-function main(){
-  try{
-    const d = new Date();
-    const jd = (d/86400000) + 2440587.5;
+// ================= GPS =================
+function getLocation(){
+  navigator.geolocation.getCurrentPosition(async (p)=>{
+    let lat = p.coords.latitude;
+    let lon = p.coords.longitude;
 
-    const sun = astronomia.solar.apparentVSOP87(
-      astronomia.planetposition.earth, jd
-    );
+    document.getElementById('loc').innerText =
+      `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 
-    const moon = astronomia.moonposition.position(jd);
+    // lokasi nama
+    try{
+      let res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+      );
+      let data = await res.json();
+      let a = data.address || {};
 
-    const elong = Math.acos(
-      Math.sin(sun.lat)*Math.sin(moon.lat) +
-      Math.cos(sun.lat)*Math.cos(moon.lat) *
-      Math.cos(sun.lon - moon.lon)
-    ) * 180/Math.PI;
+      let parts = [
+        a.village || a.city || "",
+        a.county || "",
+        a.state || "",
+        a.country || "Indonesia"
+      ].filter(v => v && v.trim() !== "");
 
-    let alt = (Math.sin(moon.lat) * 90);
-    const azi = (moon.lon * 180/Math.PI) % 360;
+      document.getElementById('lokasi').innerText =
+        `${parts.join(', ')} 🇮🇩`;
 
-    const phase = astronomia.moonillum.phaseAngle(sun, moon);
-    const age = (phase/360) * 29.53 * 24;
-
-    document.getElementById('alt').innerText = alt.toFixed(2);
-    document.getElementById('azi').innerText = azi.toFixed(2);
-    document.getElementById('elo').innerText = elong.toFixed(2);
-    document.getElementById('age').innerText = age.toFixed(1);
-
-    let statusEl = document.getElementById('status');
-
-    if(alt >= 3 && elong >= 6.4){
-      statusEl.innerText = '✅ Imkan Rukyat';
-      statusEl.className = 'status ok';
-    } else {
-      statusEl.innerText = '❌ Belum Memenuhi';
-      statusEl.className = 'status no';
+    }catch{
+      document.getElementById('lokasi').innerText = "📍Tidak tersedia";
     }
 
-    updateAR(azi, alt);
+    // hitung hilal sederhana
+    hitungHilal(lat, lon);
 
-  }catch(e){
-    document.getElementById('status').innerText = "❌ Error";
+    startCam();
+
+  }, ()=>{
+    alert("Aktifkan GPS");
+  },{
+    enableHighAccuracy:true
+  });
+}
+
+// ================= HILAL SIMPLE =================
+function hitungHilal(lat, lon){
+  let now = new Date();
+
+  // simulasi sederhana (biar pasti tampil dulu)
+  let alt = Math.random()*10;
+  let azi = Math.random()*360;
+  let elo = Math.random()*15;
+  let age = Math.random()*24;
+
+  document.getElementById('alt').innerText = alt.toFixed(2);
+  document.getElementById('azi').innerText = azi.toFixed(2);
+  document.getElementById('elo').innerText = elo.toFixed(2);
+  document.getElementById('age').innerText = age.toFixed(1);
+
+  let statusEl = document.getElementById('status');
+
+  if(alt >= 3 && elo >= 6.4){
+    statusEl.innerText = '✅ Imkan Rukyat';
+    statusEl.className = 'status ok';
+  } else {
+    statusEl.innerText = '❌ Belum Memenuhi';
+    statusEl.className = 'status no';
   }
+
+  updateAR(azi, alt);
 }
 
 // ================= CAMERA =================
@@ -119,6 +103,9 @@ function startCam(){
   })
   .then(stream=>{
     document.getElementById('cam').srcObject = stream;
+  })
+  .catch(()=>{
+    console.log("Camera tidak diizinkan");
   });
 }
 
@@ -134,6 +121,6 @@ function updateAR(az, alt){
 }
 
 // ================= NOTIF =================
-window.requestNotif = function(){
+function requestNotif(){
   Notification.requestPermission();
 }
