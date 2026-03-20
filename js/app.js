@@ -71,8 +71,22 @@ function getLocation(){
     hitungHilal(lat, lon);
     startCam();
 
+  }, (err)=>{
+
+    // 🔴 JIKA GPS GAGAL
+    document.getElementById('loc').innerText = "❌ Izin lokasi ditolak";
+    document.getElementById('lokasi').innerText = "Aktifkan GPS di browser";
+
+    // fallback pakai lokasi default (Mataram)
+    let lat = -8.5833;
+    let lon = 116.1167;
+
+    hitungHilal(lat, lon);
+    startCam();
+
   },{
-    enableHighAccuracy:true
+    enableHighAccuracy:true,
+    timeout:10000
   });
 }
 
