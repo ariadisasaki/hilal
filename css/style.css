@@ -19,10 +19,7 @@ body{
   border-radius:20px;
   padding:15px;
   margin-bottom:15px;
-}
-
-.center{
-  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.3);
 }
 
 .data-grid{
@@ -35,14 +32,19 @@ body{
   background: rgba(255,255,255,0.05);
   padding:10px;
   border-radius:12px;
-  text-align:center;
+}
+
+.highlight{
+  font-size:18px;
+  font-weight:600;
 }
 
 .status{
   text-align:center;
+  font-size:18px;
+  font-weight:600;
   padding:10px;
   border-radius:12px;
-  font-weight:bold;
 }
 
 .status.ok{ background:#1f8f4e; }
