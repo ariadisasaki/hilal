@@ -1,9 +1,12 @@
-console.log("APP VERSION FINAL - NO HIJRI BUG");
+console.log("APP FINAL - HIJRIYAH & PREDIKSI AKTIF");
+
+// ================= GLOBAL =================
+let hijriMonthIndex = 0;
 
 // ================= INIT =================
 window.onload = () => {
   startClock();
-  getHijri(); // langsung jalan
+  getHijri();
   getLocation();
 };
 
@@ -59,8 +62,11 @@ function getHijri(){
     "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
   ];
 
+  // simpan bulan sekarang
+  hijriMonthIndex = m - 1;
+
   document.getElementById('hijri').innerText =
-    "🕌 " + d + " " + bulan[m-1] + " " + y + " H";
+    "🕌 " + d + " " + bulan[hijriMonthIndex] + " " + y + " H";
 }
 
 // ================= GPS =================
@@ -98,6 +104,7 @@ function getLocation(){
 
   }, ()=>{
     document.getElementById('loc').innerText = "❌ GPS ditolak";
+    document.getElementById('lokasi').innerText = "Gunakan lokasi default";
 
     // fallback Mataram
     hitungHilal(-8.5833,116.1167);
@@ -109,6 +116,8 @@ function getLocation(){
 
 // ================= HILAL =================
 function hitungHilal(lat, lon){
+
+  // sementara masih simulasi
   let alt = Math.random()*10;
   let azi = Math.random()*360;
   let elo = Math.random()*15;
@@ -122,14 +131,26 @@ function hitungHilal(lat, lon){
   let statusEl = document.getElementById('status');
   let prediksiEl = document.getElementById('prediksi');
 
+  const bulan = [
+    "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
+    "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
+    "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
+  ];
+
+  let nextMonth = bulan[(hijriMonthIndex + 1) % 12];
+
   if(alt >= 3 && elo >= 6.4){
     statusEl.innerText = '✅ Imkan Rukyat';
     statusEl.className = 'status ok';
-    prediksiEl.innerText = "🌙 Besok kemungkinan awal bulan Hijriyah";
+
+    prediksiEl.innerText =
+      `🌙 Besok kemungkinan awal bulan ${nextMonth}`;
   } else {
     statusEl.innerText = '❌ Belum Memenuhi';
     statusEl.className = 'status no';
-    prediksiEl.innerText = "⏳ Hilal belum terlihat";
+
+    prediksiEl.innerText =
+      "⏳ Hilal belum terlihat (istikmal 30 hari)";
   }
 
   updateAR(azi, alt);
