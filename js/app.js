@@ -115,29 +115,19 @@ function getLocation(){
 }
 
 // ================= HILAL =================
-function hitungHilal(lat, lon){
+// ambil tanggal hijriyah hari ini
+let teksHijri = document.getElementById('hijri').innerText;
+let tanggalHijri = parseInt(teksHijri.split(" ")[1]);
 
-  // sementara masih simulasi
-  let alt = Math.random()*10;
-  let azi = Math.random()*360;
-  let elo = Math.random()*15;
-  let age = Math.random()*24;
+const bulan = [
+  "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
+  "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
+  "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
+];
 
-  document.getElementById('alt').innerText = alt.toFixed(2);
-  document.getElementById('azi').innerText = azi.toFixed(2);
-  document.getElementById('elo').innerText = elo.toFixed(2);
-  document.getElementById('age').innerText = age.toFixed(1);
+let nextMonth = bulan[(hijriMonthIndex + 1) % 12];
 
-  let statusEl = document.getElementById('status');
-  let prediksiEl = document.getElementById('prediksi');
-
-  const bulan = [
-    "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
-    "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
-    "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
-  ];
-
-  let nextMonth = bulan[(hijriMonthIndex + 1) % 12];
+if(tanggalHijri >= 29){
 
   if(alt >= 3 && elo >= 6.4){
     statusEl.innerText = '✅ Imkan Rukyat';
@@ -150,10 +140,16 @@ function hitungHilal(lat, lon){
     statusEl.className = 'status no';
 
     prediksiEl.innerText =
-      "⏳ Hilal belum terlihat (istikmal 30 hari)";
+      "⏳ Hilal belum terlihat (istikmal ke-30)";
   }
 
-  updateAR(azi, alt);
+}else{
+  // belum akhir bulan
+  statusEl.innerText = 'ℹ️ Belum Akhir Bulan';
+  statusEl.className = 'status';
+
+  prediksiEl.innerText =
+    "📅 Masih pertengahan bulan Hijriyah";
 }
 
 // ================= CAMERA =================
