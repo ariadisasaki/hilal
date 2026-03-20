@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hilal Observatory</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="css/style.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="header">
+  <h1>🌙 Hilal Observatory</h1>
+  <p>Accurate Crescent Moon Tracker</p>
+</div>
+
+<div class="container">
+
+<div class="card">
+  <h3>📍 Lokasi</h3>
+  <p id="loc">Memuat...</p>
+</div>
+
+<div class="card">
+  <h3>🌙 Data Hilal</h3>
+  <div class="data-grid">
+    <div class="data-box">Altitude<br><span id="alt" class="highlight"></span>°</div>
+    <div class="data-box">Azimuth<br><span id="azi" class="highlight"></span>°</div>
+    <div class="data-box">Elongasi<br><span id="elo" class="highlight"></span>°</div>
+    <div class="data-box">Umur<br><span id="age" class="highlight"></span> jam</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>📊 Status Hilal</h3>
+  <div id="status" class="status">Menghitung...</div>
+</div>
+
+<div class="card">
+  <h3>📷 AR Hilal</h3>
+  <video id="cam" autoplay playsinline></video>
+  <div id="marker">🌙</div>
+</div>
+
+<button onclick="requestNotif()">🔔 Aktifkan Notifikasi</button>
+
+</div>
+
+<script src="https://unpkg.com/astronomia@4.1.1/build/astronomia.min.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
