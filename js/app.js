@@ -27,15 +27,31 @@ function capitalize(s){
 
 // ================= HIJRIYAH =================
 function getHijri(){
+function getHijri(){
   let today = new Date();
 
-  let hijri = new Intl.DateTimeFormat('id-TN-u-ca-islamic', {
-    day:'numeric',
-    month:'long',
-    year:'numeric'
+  let hijri = new Intl.DateTimeFormat('en-SA-u-ca-islamic', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
   }).format(today);
 
-  document.getElementById('hijri').innerText = "🕌 " + hijri;
+  // Translasi ke Indonesia
+  hijri = hijri
+    .replace('Muharram','Muharram')
+    .replace('Safar','Safar')
+    .replace('Rabiʻ I','Rabiul Awal')
+    .replace('Rabiʻ II','Rabiul Akhir')
+    .replace('Jumada I','Jumadil Awal')
+    .replace('Jumada II','Jumadil Akhir')
+    .replace('Rajab','Rajab')
+    .replace('Shaʻban','Syaban')
+    .replace('Ramadan','Ramadhan')
+    .replace('Shawwal','Syawal')
+    .replace('Dhuʻl-Qiʻdah','Zulkaidah')
+    .replace('Dhuʻl-Hijjah','Zulhijjah');
+
+  document.getElementById('hijri').innerText = "🕌 " + hijri + " H";
 }
 
 // ================= GPS =================
