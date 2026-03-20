@@ -1,4 +1,4 @@
-console.log("APP FINAL - AUTO FLAG + FULL FITUR");
+console.log("APP FINAL - TANPA BENDERA");
 
 // ================= GLOBAL =================
 let hijriMonthIndex = 0;
@@ -33,16 +33,6 @@ function startClock(){
 
 function capitalize(s){
   return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-// ================= EMOJI BENDERA =================
-function getFlagEmoji(code){
-  if(!code) return "🇮🇩";
-  return code
-    .toUpperCase()
-    .replace(/./g, char =>
-      String.fromCodePoint(127397 + char.charCodeAt())
-    );
 }
 
 // ================= HIJRIYAH + MAGHRIB =================
@@ -110,13 +100,12 @@ function getLocation(){
         a.country || ""
       ].filter(v => v && v.trim() !== "");
 
-      let flag = getFlagEmoji(a.country_code);
-
       document.getElementById('lokasi').innerText =
-        `${parts.join(', ')} ${flag}`;
+        `📍${parts.join(', ')}`;
 
     }catch{
-      document.getElementById('lokasi').innerText = "📍Tidak tersedia 🇮🇩";
+      document.getElementById('lokasi').innerText =
+        "📍Tidak tersedia";
     }
 
     getHijri(lat, lon);
@@ -125,7 +114,8 @@ function getLocation(){
 
   }, ()=>{
     document.getElementById('loc').innerText = "❌ GPS ditolak";
-    document.getElementById('lokasi').innerText = "Gunakan lokasi default 🇮🇩";
+    document.getElementById('lokasi').innerText =
+      "📍Gunakan lokasi default";
 
     let lat = -8.5833;
     let lon = 116.1167;
