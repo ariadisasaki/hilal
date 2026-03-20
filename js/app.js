@@ -1,10 +1,10 @@
-console.log("Hilal Observatory FINAL BUNDLE");
+console.log("FINAL BMKG LEVEL - HILAL & HIJRIYAH");
 
-// GLOBAL
+// ================= GLOBAL =================
 let hijriMonthIndex = 0;
 let notifSudah = false;
 
-// INIT
+// ================= INIT =================
 window.onload = () => {
   startClock();
   getLocation();
@@ -12,7 +12,7 @@ window.onload = () => {
   setTimeout(()=>{ showNotif("Hilal Observatory","Aplikasi siap digunakan 🌙"); },2000);
 };
 
-// JAM & HIJRI
+// ================= JAM =================
 function startClock(){
   setInterval(()=>{
     let now = new Date();
@@ -23,140 +23,152 @@ function startClock(){
   },1000);
 }
 
-// GPS
-function getLocation(){
-  navigator.geolocation.getCurrentPosition(async p=>{
-    let lat = p.coords.latitude;
-    let lon = p.coords.longitude;
-    document.getElementById('loc').innerText = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
-
-    try{
-      let res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-      let data = await res.json();
-      let a = data.address || {};
-      let parts = [
-        a.village || a.town || a.city || "",
-        a.county || "",
-        a.state || "",
-        a.country || ""
-      ].filter(v=>v).join(", ");
-      document.getElementById('lokasi').innerText = parts;
-    }catch{
-      document.getElementById('lokasi').innerText = "Lokasi tidak tersedia";
-    }
-
-    getHijri(lat, lon);
-    hitungHilal(lat, lon);
-    startCam();
-  },()=>{ console.warn("GPS ditolak"); });
-}
-
-// HIJRI & MAGHRIB
+// ================= HIJRIYAH =================
 function getHijri(lat, lon){
   let now = new Date();
   let maghrib = 18 + (lon/180);
   let jam = now.getHours() + now.getMinutes()/60;
-  let tambah = jam >= maghrib ? 1:0;
+  let tambahHari = jam >= maghrib ? 1 : 0;
+  let jd = Math.floor((now.getTime()/86400000) + 2440587.5) + tambahHari;
 
-  let jd = Math.floor(now/86400000 + 2440587.5)+tambah;
   let l = jd - 1948440 + 10632;
   let n = Math.floor((l-1)/10631);
   l = l - 10631*n + 354;
-  let j = Math.floor((10985-l)/5316)*Math.floor((50*l)/17719) + Math.floor(l/5670)*Math.floor((43*l)/15238);
-  l = l - Math.floor((30-j)/15)*Math.floor((17719*j)/50) - Math.floor(j/16)*Math.floor((15238*j)/43)+29;
+  let j = (Math.floor((10985-l)/5316))*(Math.floor((50*l)/17719))
+        +(Math.floor(l/5670))*(Math.floor((43*l)/15238));
+  l = l - (Math.floor((30-j)/15))*(Math.floor((17719*j)/50))
+        - (Math.floor(j/16))*(Math.floor((15238*j)/43)) + 29;
   let m = Math.floor((24*l)/709);
   let d = l - Math.floor((709*m)/24);
-  let y = 30*n+j-30;
+  let y = 30*n + j - 30;
+
   const bulan = ["Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir","Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
   hijriMonthIndex = m-1;
   document.getElementById('hijri').innerText = `🕌 ${d} ${bulan[hijriMonthIndex]} ${y} H`;
 }
 
-// HILAL BMKG (Alt, Az, Elongasi)
-function hitungHilal(lat, lon){
-  if(!window.astronomia){ console.warn("Astronomia belum terload"); return; }
+// ================= GPS =================
+function getLocation(){
+  navigator.geolocation.getCurrentPosition(async p=>{
+    let lat = p.coords.latitude;
+    let lon = p.coords.longitude;
 
-  let now = new Date();
-  let jd = (now.getTime()/86400000)+2440587.5;
+    document.getElementById('loc').innerText = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
 
-  // Posisi Matahari & Bulan
-  let sun = astronomia.solar.apparentVSOP87(astronomia.planetposition.earth, jd);
-  let moon = astronomia.moonposition.position(jd);
-
-  // Elongasi
-  let cosE = Math.sin(sun.lat)*Math.sin(moon.lat) + Math.cos(sun.lat)*Math.cos(moon.lat)*Math.cos(sun.lon - moon.lon);
-  let elong = Math.acos(cosE)*180/Math.PI;
-
-  // Altitude sederhana
-  let alt = moon.lat*180/Math.PI;
-
-  // Umur hilal
-  let phase = astronomia.moonillum.phaseAngle(sun, moon);
-  let age = phase/360*29.53;
-
-  // Azimuth
-  let azi = (moon.lon*180/Math.PI)%360;
-
-  document.getElementById('alt').innerText = alt.toFixed(2);
-  document.getElementById('azi').innerText = azi.toFixed(2);
-  document.getElementById('elo').innerText = elong.toFixed(2);
-  document.getElementById('age').innerText = age.toFixed(1);
-
-  let status = document.getElementById('status');
-  let prediksi = document.getElementById('prediksi');
-
-  const bulan = ["Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir","Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
-  let nextMonth = bulan[(hijriMonthIndex+1)%12];
-
-  let teksHijri = document.getElementById('hijri').innerText;
-  let tanggalHijri = parseInt(teksHijri.split(" ")[1]);
-
-  if(tanggalHijri>=29){
-    if(alt>=3 && elong>=6.4){
-      status.innerText="✅ Imkan Rukyat";
-      status.className="status ok";
-      prediksi.innerText=`🌙 Besok kemungkinan awal bulan ${nextMonth}`;
-      if(!notifSudah){ showNotif("Hilal Terpenuhi",`🌙 Besok kemungkinan awal bulan ${nextMonth}`); notifSudah=true; }
-    }else{
-      status.innerText="❌ Belum Memenuhi";
-      status.className="status no";
-      prediksi.innerText="⏳ Hilal belum terlihat (istikmal ke-30)";
+    try{
+      let r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+      let d = await r.json();
+      let a = d.address||{};
+      let lokasi = [
+        a.village||a.town||a.city||"",
+        a.county||"",
+        a.state||"",
+        a.country||""
+      ].filter(v=>v).join(", ");
+      document.getElementById('lokasi').innerText = lokasi;
+    }catch{
+      document.getElementById('lokasi').innerText="Lokasi tidak tersedia";
     }
-  }else{
-    status.innerText="ℹ️ Belum Akhir Bulan";
-    status.className="status";
-    prediksi.innerText="📅 Masih pertengahan bulan Hijriyah";
-  }
 
-  updateAR(azi, alt);
+    getHijri(lat, lon);
+    hitungHilal(lat, lon);
+    startCam();
+  }, ()=>{ // fallback jika GPS ditolak
+    let lat=-8.5833, lon=116.1167;
+    document.getElementById('loc').innerText=`${lat}, ${lon}`;
+    document.getElementById('lokasi').innerText="Gunakan lokasi default";
+    getHijri(lat, lon);
+    hitungHilal(lat, lon);
+    startCam();
+  },{enableHighAccuracy:true});
 }
 
-// AR SENSOR
+// ================= HILAL =================
+function hitungHilal(lat, lon){
+  try{
+    let now = new Date();
+    // BMKG LEVEL
+    let jd = (now.getTime()/86400000)+2440587.5;
+    let sun = astronomia.solar.apparentVSOP87(astronomia.planetposition.earth,jd);
+    let moon = astronomia.moonposition.position(jd);
+    let elong = Math.acos(
+      Math.sin(sun.lat)*Math.sin(moon.lat)+Math.cos(sun.lat)*Math.cos(moon.lat)*Math.cos(sun.lon-moon.lon)
+    )*180/Math.PI;
+    let alt = moon.lat*90; // sederhana
+    if(alt>-1){ alt+=0.016/Math.tan((alt+7.31/(alt+4.4))*Math.PI/180);}
+    let azi = (moon.lon*180/Math.PI)%360;
+    let phase = astronomia.moonillum.phaseAngle(sun,moon);
+    let age = (phase/360)*29.53*24;
+
+    document.getElementById('alt').innerText=alt.toFixed(2);
+    document.getElementById('azi').innerText=azi.toFixed(2);
+    document.getElementById('elo').innerText=elong.toFixed(2);
+    document.getElementById('age').innerText=age.toFixed(1);
+
+    let statusEl=document.getElementById('status');
+    let prediksiEl=document.getElementById('prediksi');
+
+    const bulan = ["Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir","Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
+    let nextMonth = bulan[(hijriMonthIndex+1)%12];
+
+    let teks=document.getElementById('hijri').innerText;
+    let tanggalHijri=parseInt(teks.split(" ")[1]);
+
+    if(tanggalHijri>=29){
+      if(alt>=3 && elong>=6.4){
+        statusEl.innerText='✅ Imkan Rukyat';
+        statusEl.className='status ok';
+        prediksiEl.innerText=`🌙 Besok kemungkinan awal bulan ${nextMonth}`;
+        if(!notifSudah){showNotif("Hilal Terpenuhi", `🌙 Besok kemungkinan awal bulan ${nextMonth}`); notifSudah=true;}
+      } else {
+        statusEl.innerText='❌ Belum Memenuhi';
+        statusEl.className='status no';
+        prediksiEl.innerText="⏳ Hilal belum terlihat (istikmal ke-30)";
+      }
+    } else {
+      statusEl.innerText='ℹ️ Belum Akhir Bulan';
+      statusEl.className='status';
+      prediksiEl.innerText="📅 Masih pertengahan bulan Hijriyah";
+    }
+
+  }catch(e){
+    console.error("Error menghitung hilal:",e);
+  }
+}
+
+// ================= SENSOR =================
 function initSensor(){
-  window.addEventListener("deviceorientation", e=>{
-    updateAR(e.alpha||0, e.beta||0);
+  window.addEventListener("deviceorientation",e=>{
+    updateAR(e.alpha||0,e.beta||0);
   });
 }
 
-// CAMERA
+// ================= AR =================
+function updateAR(h,t){
+  let m=document.getElementById('marker');
+  let x=window.innerWidth/2+(0-h)*4;
+  let y=window.innerHeight/2-(0-t)*4;
+  m.style.left=x+"px";
+  m.style.top=y+"px";
+}
+
+// ================= CAMERA =================
 function startCam(){
   navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
-  .then(s=>{ document.getElementById('cam').srcObject=s; }).catch(()=>{});
+  .then(s=>{document.getElementById('cam').srcObject=s;})
+  .catch(()=>{});
 }
 
-// AR MARKER
-function updateAR(az, alt){
-  let m = document.getElementById('marker');
-  let x = window.innerWidth/2 + (0-az)*4;
-  let y = window.innerHeight/2 - (0-alt)*4;
-  m.style.left = x+"px";
-  m.style.top = y+"px";
-}
-
-// NOTIFIKASI
+// ================= NOTIFIKASI =================
 function requestNotif(){
-  Notification.requestPermission().then(p=>{ if(p==="granted"){ showNotif("Notifikasi Aktif","🔔 Notifikasi berhasil diaktifkan"); } });
+  Notification.requestPermission().then(p=>{
+    if(p==="granted"){showNotif("Notifikasi Aktif","🔔 Notifikasi berhasil diaktifkan");}
+    else{alert("Notifikasi ditolak");}
+  });
 }
+
 function showNotif(judul,pesan){
-  if(Notification.permission==="granted"){ new Notification(judul,{body:pesan,icon:"icon.png"}); }
+  if(Notification.permission==="granted"){
+    new Notification(judul,{body:pesan,icon:"icon.png"});
+  }
 }
