@@ -19,8 +19,6 @@ body{
   border-radius:20px;
   padding:15px;
   margin-bottom:15px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.3);
-  backdrop-filter: blur(10px);
 }
 
 .data-grid{
@@ -31,17 +29,16 @@ body{
 
 .data-box{
   background: rgba(255,255,255,0.05);
-  padding:12px;
+  padding:10px;
   border-radius:12px;
   text-align:center;
 }
 
 .status{
   text-align:center;
-  font-size:18px;
-  font-weight:600;
-  padding:12px;
+  padding:10px;
   border-radius:12px;
+  font-weight:bold;
 }
 
 .status.ok{ background:#1f8f4e; }
@@ -52,15 +49,9 @@ video{
   border-radius:15px;
 }
 
-.card:has(video){
-  position:relative;
-  overflow:hidden;
-}
-
 #marker{
   position:absolute;
   font-size:30px;
-  transform:translate(-50%,-50%);
 }
 
 button{
@@ -70,17 +61,5 @@ button{
   border-radius:12px;
   background:#3a7bfd;
   color:#fff;
-}
-
-#hijri{
-  margin-top:5px;
-  font-size:14px;
-  opacity:0.8;
-}
-
-#prediksi{
-  text-align:center;
-  margin-top:10px;
-  font-size:14px;
-  opacity:0.9;
+  font-weight:600;
 }
