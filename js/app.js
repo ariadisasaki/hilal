@@ -214,10 +214,13 @@ function hitungHilal(lat, lon){
 function requestNotif(){
   Notification.requestPermission().then(permission=>{
     if(permission === "granted"){
-      showNotif("Notifikasi Aktif",
-        "🔔 Notifikasi berhasil diaktifkan");
-    }else{
-      alert("Notifikasi ditolak");
+      showNotif("Notifikasi Aktif","🔔 Berhasil diaktifkan");
+    } 
+    else if(permission === "denied"){
+      alert("❌ Notifikasi diblokir. Silakan aktifkan di pengaturan browser.");
+    }
+    else{
+      alert("⚠️ Notifikasi belum diizinkan");
     }
   });
 }
