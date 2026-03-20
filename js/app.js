@@ -1,4 +1,4 @@
-console.log("APP FINAL - FULL FITUR + NOTIF AKTIF");
+console.log("APP FINAL - AUTO FLAG + FULL FITUR");
 
 // ================= GLOBAL =================
 let hijriMonthIndex = 0;
@@ -9,7 +9,6 @@ window.onload = () => {
   startClock();
   getLocation();
 
-  // notif saat pertama buka
   setTimeout(()=>{
     showNotif("Hilal Observatory", "Aplikasi siap digunakan 🌙");
   },2000);
@@ -36,12 +35,21 @@ function capitalize(s){
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// ================= EMOJI BENDERA =================
+function getFlagEmoji(code){
+  if(!code) return "🇮🇩";
+  return code
+    .toUpperCase()
+    .replace(/./g, char =>
+      String.fromCodePoint(127397 + char.charCodeAt())
+    );
+}
+
 // ================= HIJRIYAH + MAGHRIB =================
 function getHijri(lat, lon){
 
   let now = new Date();
 
-  // estimasi maghrib sederhana
   let maghrib = 18 + (lon / 180);
   let currentHour = now.getHours() + (now.getMinutes()/60);
 
@@ -99,14 +107,16 @@ function getLocation(){
         a.village || a.city || "",
         a.county || "",
         a.state || "",
-        a.country || "Indonesia"
+        a.country || ""
       ].filter(v => v && v.trim() !== "");
 
+      let flag = getFlagEmoji(a.country_code);
+
       document.getElementById('lokasi').innerText =
-        `${parts.join(', ')} 🇮🇩`;
+        `${parts.join(', ')} ${flag}`;
 
     }catch{
-      document.getElementById('lokasi').innerText = "📍Tidak tersedia";
+      document.getElementById('lokasi').innerText = "📍Tidak tersedia 🇮🇩";
     }
 
     getHijri(lat, lon);
@@ -115,7 +125,7 @@ function getLocation(){
 
   }, ()=>{
     document.getElementById('loc').innerText = "❌ GPS ditolak";
-    document.getElementById('lokasi').innerText = "Gunakan lokasi default";
+    document.getElementById('lokasi').innerText = "Gunakan lokasi default 🇮🇩";
 
     let lat = -8.5833;
     let lon = 116.1167;
@@ -131,7 +141,6 @@ function getLocation(){
 // ================= HILAL =================
 function hitungHilal(lat, lon){
 
-  // simulasi (nanti bisa upgrade ke real)
   let alt = Math.random()*10;
   let azi = Math.random()*360;
   let elo = Math.random()*15;
@@ -165,7 +174,6 @@ function hitungHilal(lat, lon){
       prediksiEl.innerText =
         `🌙 Besok kemungkinan awal bulan ${nextMonth}`;
 
-      // 🔔 notif sekali saja
       if(!notifSudah){
         showNotif("Hilal Terpenuhi",
           `🌙 Besok kemungkinan awal bulan ${nextMonth}`);
