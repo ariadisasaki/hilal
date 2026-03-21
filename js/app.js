@@ -105,7 +105,7 @@ function getLocation(){
 }
 
 // ================= HILAL =================
-function hitungHilal(lat, lon){
+ function hitungHilal(lat, lon){
   const now = new Date();
 
   // ================= TIME =================
@@ -174,7 +174,7 @@ function hitungHilal(lat, lon){
   ) * deg;
 
   // ================= MOON AGE =================
-  let age = elo / 12.19 * 24; // pendekatan kasar
+  let age = elo / 12.19 * 24;
 
   // ================= SIMPAN =================
   hilalData.alt = alt;
@@ -189,6 +189,14 @@ function hitungHilal(lat, lon){
   // ================= STATUS =================
   let statusEl = document.getElementById('status');
   let prediksiEl = document.getElementById('prediksi');
+
+  // ================= TAMBAHAN BARU (PENTING) =================
+  if(alt < 0){
+    statusEl.innerText = `🌑 Bulan di bawah horizon (${alt.toFixed(1)}°)`;
+    statusEl.className = "status no";
+    prediksiEl.innerText = "⛔ Tidak bisa rukyat saat ini";
+    return; // 🔥 hentikan di sini
+  }
 
   const bulan = ["Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir","Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
   let nextMonth = bulan[(hijriMonthIndex+1)%12];
