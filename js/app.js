@@ -1,20 +1,18 @@
-console.log("FINAL PRO - HILAL REAL API");
+console.log("FINAL UPGRADE AR - HILAL");
 
 // ================= GLOBAL =================
 let hijriMonthIndex = 0;
 let notifSudah = false;
 
+// data hilal untuk AR
 let hilalData = {
   alt: 0,
   azi: 0
 };
 
+// smoothing marker
 let smoothX = 0;
 let smoothY = 0;
-
-// ================= ⚠️ API CONFIG (EDIT DI SINI) =================
-const API_ID = "ISI_APP_ID_KAMU";
-const API_SECRET = "ISI_APP_SECRET_KAMU";
 
 // ================= INIT =================
 window.onload = () => {
@@ -64,43 +62,6 @@ function getHijri(lat, lon){
   document.getElementById('hijri').innerText = `🕌 ${d} ${bulan[hijriMonthIndex]} ${y} H`;
 }
 
-// ================= 📡 API BULAN REAL =================
-async function getRealMoon(lat, lon){
-  try{
-    let now = new Date().toISOString();
-
-    let res = await fetch("https://api.astronomyapi.com/api/v2/bodies/positions/moon",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Basic " + btoa(07fa7445-3158-4da7-a52f-2e18b56065c9 + ":" + 225d8080cd3274b87beef6e989bb6cff102e2b8b7f0aa0706646422e032894b8a9eabf8aff5c141e4b159b10d9a61a275b011054a7bad7abd377f82928df99f961bc9e2b767243cf29639e5b7658a56ef8e565fa847cfe00fb5973dc40962611c4578b81980349f27804e200ceb5430b)
-      },
-      body: JSON.stringify({
-        format: "json",
-        observer: {
-          latitude: lat,
-          longitude: lon,
-          elevation: 0
-        },
-        datetime: now
-      })
-    });
-
-    let data = await res.json();
-
-    let moon = data.data.table.rows[0].cells[0];
-
-    let alt = moon.position.horizontal.altitude.degrees;
-    let azi = moon.position.horizontal.azimuth.degrees;
-
-    return {alt, azi};
-
-  }catch(e){
-    console.log("API gagal, fallback simulasi");
-    return null;
-  }
-}
-
 // ================= GPS =================
 function getLocation(){
   navigator.geolocation.getCurrentPosition(async p=>{
@@ -125,41 +86,30 @@ function getLocation(){
     }
 
     getHijri(lat, lon);
-    await hitungHilal(lat, lon);
+    hitungHilal(lat, lon);
     startCam();
 
-  }, async ()=>{
+  }, ()=>{
     let lat=-8.5833, lon=116.1167;
     document.getElementById('loc').innerText=`${lat}, ${lon}`;
     document.getElementById('lokasi').innerText="Gunakan lokasi default";
-
     getHijri(lat, lon);
-    await hitungHilal(lat, lon);
+    hitungHilal(lat, lon);
     startCam();
   },{enableHighAccuracy:true});
 }
 
-// ================= 🌙 HILAL =================
-async function hitungHilal(lat, lon){
-
+// ================= HILAL =================
+function hitungHilal(lat, lon){
   let now = new Date();
 
-  let real = await getRealMoon(lat, lon);
-
-  let alt, azi;
-
-  if(real){
-    alt = real.alt;
-    azi = real.azi;
-  } else {
-    // fallback simulasi
-    alt = 5 + Math.sin(now.getHours()/24*Math.PI)*2;
-    azi = (now.getHours()*15)%360;
-  }
-
+  // simulasi (nanti bisa di-upgrade ke real astronomi)
+  let alt = 5 + Math.sin(now.getHours()/24*Math.PI)*2;
+  let azi = (now.getHours()*15)%360;
   let elo = 7 + Math.abs(Math.sin(now.getHours()/24*Math.PI))*1.5;
   let age = (now.getHours() % 24) + now.getMinutes()/60;
 
+  // simpan ke global AR
   hilalData.alt = alt;
   hilalData.azi = azi;
 
@@ -200,7 +150,7 @@ async function hitungHilal(lat, lon){
   }
 }
 
-// ================= SENSOR =================
+// ================= SENSOR (UPGRADE SMOOTH) =================
 function initSensor(){
   let lastAlpha = 0;
   let lastBeta = 0;
@@ -210,6 +160,7 @@ function initSensor(){
     let alpha = e.alpha || 0;
     let beta = e.beta || 0;
 
+    // smoothing sensor
     alpha = lastAlpha + (alpha - lastAlpha) * 0.2;
     beta = lastBeta + (beta - lastBeta) * 0.2;
 
@@ -220,7 +171,7 @@ function initSensor(){
   });
 }
 
-// ================= AR =================
+// ================= AR (UPGRADE REALISTIS) =================
 function updateAR(alpha, beta){
   let marker = document.getElementById('marker');
   let video = document.getElementById('cam');
@@ -229,6 +180,7 @@ function updateAR(alpha, beta){
 
   let rect = video.getBoundingClientRect();
 
+  // ================= AZIMUTH =================
   let diffAzi = hilalData.azi - alpha;
 
   if(diffAzi > 180) diffAzi -= 360;
@@ -236,12 +188,15 @@ function updateAR(alpha, beta){
 
   let x = rect.width/2 + (diffAzi * 3);
 
+  // ================= ALTITUDE =================
   let diffAlt = hilalData.alt - beta;
   let y = rect.height/2 - (diffAlt * 5);
 
+  // ================= BATAS =================
   x = Math.max(0, Math.min(rect.width, x));
   y = Math.max(0, Math.min(rect.height, y));
 
+  // ================= SMOOTH =================
   smoothX += ((rect.left + x) - smoothX) * 0.2;
   smoothY += ((rect.top + y) - smoothY) * 0.2;
 
