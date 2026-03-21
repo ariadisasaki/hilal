@@ -106,21 +106,87 @@ function getLocation(){
 
 // ================= HILAL =================
 function hitungHilal(lat, lon){
-  let now = new Date();
+  const now = new Date();
 
-  let alt = 5 + Math.sin(now.getHours()/24*Math.PI)*2;
-  let azi = (now.getHours()*15)%360;
-  let elo = 7 + Math.abs(Math.sin(now.getHours()/24*Math.PI))*1.5;
-  let age = (now.getHours() % 24) + now.getMinutes()/60;
+  // ================= TIME =================
+  const rad = Math.PI/180;
+  const deg = 180/Math.PI;
 
+  const JD = (now / 86400000) + 2440587.5;
+  const T = (JD - 2451545.0) / 36525;
+
+  // ================= SUN =================
+  let L0 = (280.46646 + 36000.76983*T) % 360;
+  let M = 357.52911 + 35999.05029*T;
+  let e = 0.016708634;
+
+  let C = (1.914602 - 0.004817*T) * Math.sin(M*rad)
+        + (0.019993 - 0.000101*T) * Math.sin(2*M*rad)
+        + 0.000289 * Math.sin(3*M*rad);
+
+  let sunLong = L0 + C;
+  let sunRA = Math.atan2(Math.cos(23.44*rad)*Math.sin(sunLong*rad), Math.cos(sunLong*rad))*deg;
+  let sunDec = Math.asin(Math.sin(23.44*rad)*Math.sin(sunLong*rad))*deg;
+
+  // ================= MOON =================
+  let Lm = (218.316 + 13.176396*(JD - 2451545)) % 360;
+  let Mm = (134.963 + 13.064993*(JD - 2451545)) % 360;
+  let F  = (93.272 + 13.229350*(JD - 2451545)) % 360;
+
+  let moonLong = Lm + 6.289 * Math.sin(Mm*rad);
+  let moonLat  = 5.128 * Math.sin(F*rad);
+
+  let moonRA = Math.atan2(
+    Math.sin(moonLong*rad)*Math.cos(23.44*rad) - Math.tan(moonLat*rad)*Math.sin(23.44*rad),
+    Math.cos(moonLong*rad)
+  ) * deg;
+
+  let moonDec = Math.asin(
+    Math.sin(moonLat*rad)*Math.cos(23.44*rad) +
+    Math.cos(moonLat*rad)*Math.sin(23.44*rad)*Math.sin(moonLong*rad)
+  ) * deg;
+
+  // ================= SIDEREAL TIME =================
+  let GMST = (280.46061837 + 360.98564736629*(JD - 2451545)) % 360;
+  let LST = GMST + lon;
+
+  // ================= HOUR ANGLE =================
+  let HA = (LST - moonRA);
+
+  // ================= ALTITUDE =================
+  let alt = Math.asin(
+    Math.sin(lat*rad)*Math.sin(moonDec*rad) +
+    Math.cos(lat*rad)*Math.cos(moonDec*rad)*Math.cos(HA*rad)
+  ) * deg;
+
+  // ================= AZIMUTH =================
+  let azi = Math.atan2(
+    -Math.sin(HA*rad),
+    Math.tan(moonDec*rad)*Math.cos(lat*rad) - Math.sin(lat*rad)*Math.cos(HA*rad)
+  ) * deg;
+
+  if(azi < 0) azi += 360;
+
+  // ================= ELONGATION =================
+  let elo = Math.acos(
+    Math.sin(sunDec*rad)*Math.sin(moonDec*rad) +
+    Math.cos(sunDec*rad)*Math.cos(moonDec*rad)*Math.cos((sunRA-moonRA)*rad)
+  ) * deg;
+
+  // ================= MOON AGE =================
+  let age = elo / 12.19 * 24; // pendekatan kasar
+
+  // ================= SIMPAN =================
   hilalData.alt = alt;
   hilalData.azi = azi;
 
+  // ================= UPDATE UI =================
   document.getElementById('alt').innerText = alt.toFixed(2);
   document.getElementById('azi').innerText = azi.toFixed(2);
   document.getElementById('elo').innerText = elo.toFixed(2);
   document.getElementById('age').innerText = age.toFixed(1);
 
+  // ================= STATUS =================
   let statusEl = document.getElementById('status');
   let prediksiEl = document.getElementById('prediksi');
 
@@ -141,22 +207,15 @@ function hitungHilal(lat, lon){
       statusEl.innerText = '✅ Imkan Rukyat';
       statusEl.className = 'status ok';
       prediksiEl.innerText = `🌙 Besok kemungkinan awal bulan ${nextMonth}`;
-
-      if(!notifSudah){
-        showNotif("Hilal Terpenuhi", `🌙 Besok kemungkinan awal bulan ${nextMonth}`);
-        notifSudah = true;
-      }
-
     } else {
       statusEl.innerText = '❌ Belum Memenuhi';
       statusEl.className = 'status no';
-      prediksiEl.innerText = "⏳ Hilal belum terlihat (istikmal ke-30)";
+      prediksiEl.innerText = "⏳ Hilal belum terlihat (istikmal)";
     }
-
   } else {
     statusEl.innerText = 'ℹ️ Belum Akhir Bulan';
     statusEl.className = 'status';
-    prediksiEl.innerText = "📅 Masih pertengahan bulan Hijriyah";
+    prediksiEl.innerText = "📅 Masih pertengahan bulan";
   }
 }
 
