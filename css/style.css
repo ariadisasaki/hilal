@@ -186,3 +186,26 @@ button:active{
 .logo[style*="display: none"] + .logo-fallback{
   display:block;
 }
+
+.camera-wrapper{
+  position: relative;
+  overflow: hidden; /* 🔥 KUNCI: marker tidak keluar */
+  border-radius:15px;
+}
+
+.camera-wrapper video{
+  width:100%;
+  height:220px;
+  object-fit:cover;
+  display:block;
+}
+
+#marker{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-size:30px;
+  z-index:2;
+  pointer-events:none;
+}
