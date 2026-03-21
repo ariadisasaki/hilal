@@ -231,3 +231,39 @@ function showNotif(judul,pesan){
     new Notification(judul,{body:pesan,icon:"icon.png"});
   }
 }
+
+async function getRealMoon(lat, lon){
+  try{
+    let now = new Date().toISOString();
+
+    let res = await fetch("https://api.astronomyapi.com/api/v2/bodies/positions/moon",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Basic " + btoa("07fa7445-3158-4da7-a52f-2e18b56065c9:225d8080cd3274b87beef6e989bb6cff102e2b8b7f0aa0706646422e032894b8a9eabf8aff5c141e4b159b10d9a61a275b011054a7bad7abd377f82928df99f961bc9e2b767243cf29639e5b7658a56ef8e565fa847cfe00fb5973dc40962611c4578b81980349f27804e200ceb5430b")
+      },
+      body: JSON.stringify({
+        format: "json",
+        observer: {
+          latitude: lat,
+          longitude: lon,
+          elevation: 0
+        },
+        datetime: now
+      })
+    });
+
+    let data = await res.json();
+
+    let moon = data.data.table.rows[0].cells[0];
+
+    let alt = moon.position.horizontal.altitude.degrees;
+    let azi = moon.position.horizontal.azimuth.degrees;
+
+    return {alt, azi};
+
+  }catch(e){
+    console.log("API gagal, pakai simulasi");
+    return null;
+  }
+}
