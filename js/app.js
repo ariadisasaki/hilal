@@ -162,26 +162,26 @@ function hitungHilal(lat, lon){
 // ================= SENSOR =================
 function initSensor(){
   let lastAlpha = 0;
-  let lastBeta = 0;
+  let lastGamma = 0;
 
   window.addEventListener("deviceorientation", e => {
 
     let alpha = e.alpha || 0;
-    let beta = e.beta || 0;
+    let gamma = e.gamma || 0;
 
-    // smoothing biar tidak goyang
-    alpha = lastAlpha + (alpha - lastAlpha) * 0.1;
-    beta = lastBeta + (beta - lastBeta) * 0.1;
+    // smoothing
+    alpha = lastAlpha + (alpha - lastAlpha) * 0.15;
+    gamma = lastGamma + (gamma - lastGamma) * 0.15;
 
     lastAlpha = alpha;
-    lastBeta = beta;
+    lastGamma = gamma;
 
-    updateAR(alpha, beta);
+    updateAR(alpha, 0, gamma);
   });
 }
 
 // ================= AR FINAL FIX =================
-function updateAR(alpha, beta){
+function updateAR(alpha, beta, gamma){
   const marker = document.getElementById('marker');
   const wrapper = document.querySelector('.camera-wrapper');
 
@@ -190,26 +190,27 @@ function updateAR(alpha, beta){
   const width = wrapper.clientWidth;
   const height = wrapper.clientHeight;
 
-  // ================= HITUNG SELISIH =================
+  // ================= AZIMUTH =================
   let deltaAz = hilalData.azi - alpha;
+
   if(deltaAz > 180) deltaAz -= 360;
   if(deltaAz < -180) deltaAz += 360;
 
-  let deltaAlt = hilalData.alt - beta;
+  // ================= ALTITUDE (PAKAI GAMMA) =================
+  let deltaAlt = hilalData.alt - gamma;
 
-  // ================= KONVERSI KE PIXEL =================
-  let x = width/2 + deltaAz * 2.5;
+  // ================= KONVERSI =================
+  let x = width/2 + deltaAz * 3;
   let y = height/2 - deltaAlt * 4;
 
-  // ================= BATAS AMAN (TIDAK KELUAR FRAME) =================
+  // ================= BATAS =================
   x = Math.max(20, Math.min(width - 20, x));
   y = Math.max(20, Math.min(height - 20, y));
 
-  // ================= SMOOTHING =================
+  // ================= SMOOTH =================
   smoothX += (x - smoothX) * 0.2;
   smoothY += (y - smoothY) * 0.2;
 
-  // ================= POSISI FINAL =================
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
 }
