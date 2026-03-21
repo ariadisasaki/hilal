@@ -173,11 +173,12 @@ function initSensor(){
 // ================= AR FIX FINAL =================
 function updateAR(alpha, beta){
   let marker = document.getElementById('marker');
-  let video = document.getElementById('cam');
+  let wrapper = document.querySelector('.camera-wrapper');
 
-  if(!marker || !video) return;
+  if(!marker || !wrapper) return;
 
-  let rect = video.getBoundingClientRect();
+  let width = wrapper.offsetWidth;
+  let height = wrapper.offsetHeight;
 
   // ================= AZIMUTH =================
   let deltaAz = hilalData.azi - alpha;
@@ -189,17 +190,18 @@ function updateAR(alpha, beta){
   let deltaAlt = hilalData.alt - beta;
 
   // ================= MAPPING =================
-  let x = rect.width / 2 + deltaAz * 4;
-  let y = rect.height / 2 - deltaAlt * 6;
+  let x = width / 2 + deltaAz * 3;
+  let y = height / 2 - deltaAlt * 5;
 
   // ================= CLAMP =================
-  x = Math.max(0, Math.min(rect.width, x));
-  y = Math.max(0, Math.min(rect.height, y));
+  x = Math.max(0, Math.min(width, x));
+  y = Math.max(0, Math.min(height, y));
 
   // ================= SMOOTH =================
-  smoothX += ((rect.left + x) - smoothX) * 0.15;
-  smoothY += ((rect.top + y) - smoothY) * 0.15;
+  smoothX += (x - smoothX) * 0.2;
+  smoothY += (y - smoothY) * 0.2;
 
+  // ================= POSISI FINAL =================
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
 }
