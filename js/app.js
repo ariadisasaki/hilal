@@ -1,4 +1,4 @@
-console.log("FINAL AR FIXED - HILAL");
+console.log("FINAL PERFECT AR - HILAL");
 
 // ================= GLOBAL =================
 let hijriMonthIndex = 0;
@@ -103,7 +103,7 @@ function getLocation(){
 function hitungHilal(lat, lon){
   let now = new Date();
 
-  // simulasi (aman, tidak kosong)
+  // sementara masih simulasi stabil
   let alt = 5 + Math.sin(now.getHours()/24*Math.PI)*2;
   let azi = (now.getHours()*15)%360;
   let elo = 7 + Math.abs(Math.sin(now.getHours()/24*Math.PI))*1.5;
@@ -116,37 +116,6 @@ function hitungHilal(lat, lon){
   document.getElementById('azi').innerText=azi.toFixed(2);
   document.getElementById('elo').innerText=elo.toFixed(2);
   document.getElementById('age').innerText=age.toFixed(1);
-
-  let statusEl=document.getElementById('status');
-  let prediksiEl=document.getElementById('prediksi');
-
-  const bulan = ["Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir","Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
-  let nextMonth = bulan[(hijriMonthIndex+1)%12];
-
-  let teks=document.getElementById('hijri').innerText;
-  let tanggalHijri=parseInt(teks.split(" ")[1]);
-
-  if(tanggalHijri>=29){
-    if(alt>=3 && elo>=6.4){
-      statusEl.innerText='✅ Imkan Rukyat';
-      statusEl.className='status ok';
-      prediksiEl.innerText=`🌙 Besok kemungkinan awal bulan ${nextMonth}`;
-
-      if(!notifSudah){
-        showNotif("Hilal Terpenuhi", `🌙 Besok kemungkinan awal bulan ${nextMonth}`);
-        notifSudah=true;
-      }
-
-    } else {
-      statusEl.innerText='❌ Belum Memenuhi';
-      statusEl.className='status no';
-      prediksiEl.innerText="⏳ Hilal belum terlihat (istikmal ke-30)";
-    }
-  } else {
-    statusEl.innerText='ℹ️ Belum Akhir Bulan';
-    statusEl.className='status';
-    prediksiEl.innerText="📅 Masih pertengahan bulan Hijriyah";
-  }
 }
 
 // ================= SENSOR =================
@@ -159,9 +128,9 @@ function initSensor(){
     let alpha = e.alpha || 0;
     let beta = e.beta || 0;
 
-    // smoothing sensor
-    alpha = lastAlpha + (alpha - lastAlpha) * 0.15;
-    beta = lastBeta + (beta - lastBeta) * 0.15;
+    // smoothing biar tidak goyang
+    alpha = lastAlpha + (alpha - lastAlpha) * 0.1;
+    beta = lastBeta + (beta - lastBeta) * 0.1;
 
     lastAlpha = alpha;
     lastBeta = beta;
@@ -170,34 +139,32 @@ function initSensor(){
   });
 }
 
-// ================= AR FIX FINAL =================
+// ================= AR FINAL FIX =================
 function updateAR(alpha, beta){
-  let marker = document.getElementById('marker');
-  let wrapper = document.querySelector('.camera-wrapper');
+  const marker = document.getElementById('marker');
+  const wrapper = document.querySelector('.camera-wrapper');
 
   if(!marker || !wrapper) return;
 
-  let width = wrapper.offsetWidth;
-  let height = wrapper.offsetHeight;
+  const width = wrapper.clientWidth;
+  const height = wrapper.clientHeight;
 
-  // ================= AZIMUTH =================
+  // ================= HITUNG SELISIH =================
   let deltaAz = hilalData.azi - alpha;
-
   if(deltaAz > 180) deltaAz -= 360;
   if(deltaAz < -180) deltaAz += 360;
 
-  // ================= ALTITUDE =================
   let deltaAlt = hilalData.alt - beta;
 
-  // ================= MAPPING =================
-  let x = width / 2 + deltaAz * 3;
-  let y = height / 2 - deltaAlt * 5;
+  // ================= KONVERSI KE PIXEL =================
+  let x = width/2 + deltaAz * 2.5;
+  let y = height/2 - deltaAlt * 4;
 
-  // ================= CLAMP =================
-  x = Math.max(0, Math.min(width, x));
-  y = Math.max(0, Math.min(height, y));
+  // ================= BATAS AMAN (TIDAK KELUAR FRAME) =================
+  x = Math.max(20, Math.min(width - 20, x));
+  y = Math.max(20, Math.min(height - 20, y));
 
-  // ================= SMOOTH =================
+  // ================= SMOOTHING =================
   smoothX += (x - smoothX) * 0.2;
   smoothY += (y - smoothY) * 0.2;
 
