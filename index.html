@@ -4,10 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hilal Checker</title>
+
 <link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0b1a3a">
 </head>
+
 <body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-content">
+    <img src="icon.png" class="logo">
+    <h2>Hilal Checker</h2>
+    <div class="loader"></div>
+  </div>
+</div>
 
 <div class="header">
   <h1>🌙 Hilal Checker</h1>
@@ -16,50 +30,67 @@
 
 <div class="container">
 
-  <!-- Waktu & Hijriyah -->
   <div class="card">
     <h3>⏰ Tanggal dan Waktu</h3>
     <p id="waktu">Memuat...</p>
     <p id="hijri">🕌 Memuat...</p>
   </div>
 
-  <!-- Lokasi -->
   <div class="card">
     <h3>📍 Lokasi</h3>
     <p id="loc">Memuat...</p>
     <p id="lokasi">Memuat...</p>
   </div>
 
-  <!-- Data Hilal -->
   <div class="card">
     <h3>🌙 Data Hilal</h3>
     <div class="data-grid">
-      <div class="data-box">Altitude<br><span id="alt" class="highlight">0.00</span>°</div>
-      <div class="data-box">Azimuth<br><span id="azi" class="highlight">0.00</span>°</div>
-      <div class="data-box">Elongasi<br><span id="elo" class="highlight">0.00</span>°</div>
-      <div class="data-box">Umur<br><span id="age" class="highlight">0.0</span> jam</div>
+      <div class="data-box">Altitude<br><span id="alt">0.00</span>°</div>
+      <div class="data-box">Azimuth<br><span id="azi">0.00</span>°</div>
+      <div class="data-box">Elongasi<br><span id="elo">0.00</span>°</div>
+      <div class="data-box">Umur<br><span id="age">0.0</span> jam</div>
     </div>
   </div>
 
-  <!-- Status Hilal -->
   <div class="card">
     <h3>📊 Status Hilal</h3>
     <div id="status" class="status">Memuat...</div>
     <div id="prediksi" class="status">Memuat...</div>
   </div>
 
-  <!-- Kamera AR -->
   <div class="card">
     <h3>📷 AR Hilal</h3>
     <video id="cam" autoplay playsinline></video>
     <div id="marker">🌙</div>
   </div>
 
-  <!-- Notifikasi -->
   <button onclick="requestNotif()">🔔 Aktifkan Notifikasi</button>
+
+  <div class="footer">
+    Developed by 
+    <a href="https://www.facebook.com/share/1C8bjd7Xoh" target="_blank">
+      Ariadi Forester
+    </a>
+  </div>
 
 </div>
 
 <script src="js/app.js"></script>
+
+<script>
+// SPLASH AUTO HIDE
+window.addEventListener("load", ()=>{
+  setTimeout(()=>{
+    document.getElementById("splash").style.opacity="0";
+    setTimeout(()=>{document.getElementById("splash").style.display="none";},500);
+  },2000);
+});
+
+// REGISTER SERVICE WORKER (PWA)
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+
 </body>
 </html>
