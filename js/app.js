@@ -284,8 +284,8 @@ function initSensor(){
     let alpha=e.alpha||0;
     let gamma=e.gamma||0;
 
-    alpha=lastAlpha+(alpha-lastAlpha)*0.15;
-    gamma=lastGamma+(gamma-lastGamma)*0.15;
+    alpha=lastAlpha+(alpha-lastAlpha)*0.1;
+    gamma=lastGamma+(gamma-lastGamma)*0.1;
 
     lastAlpha=alpha;
     lastGamma=gamma;
@@ -304,35 +304,45 @@ function updateAR(alpha, beta, gamma){
   const width = wrapper.clientWidth;
   const height = wrapper.clientHeight;
 
-  // ================= HITUNG SELISIH =================
+  // ================= NORMALISASI =================
   let deltaAz = hilalData.azi - alpha;
   if(deltaAz > 180) deltaAz -= 360;
   if(deltaAz < -180) deltaAz += 360;
 
   let deltaAlt = hilalData.alt - gamma;
 
+  // ================= BATASAN (ANTI LIAR) =================
+  // batasi sudut ekstrem
+  deltaAz = Math.max(-45, Math.min(45, deltaAz));
+  deltaAlt = Math.max(-30, Math.min(30, deltaAlt));
+
+  // ================= DEAD ZONE =================
+  if(Math.abs(deltaAz) < 0.5) deltaAz = 0;
+  if(Math.abs(deltaAlt) < 0.5) deltaAlt = 0;
+
   let error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
   // ================= POSISI TARGET =================
-  let targetX = width/2 + deltaAz * 2;
-  let targetY = height/2 - deltaAlt * 3;
+  let targetX = width/2 + deltaAz * 1.5; // 🔥 diperkecil (biar tidak liar)
+  let targetY = height/2 - deltaAlt * 2; // 🔥 lebih stabil bawah
 
+  // clamp ke layar
   targetX = Math.max(20, Math.min(width - 20, targetX));
   targetY = Math.max(20, Math.min(height - 20, targetY));
 
-  // ================= SMOOTHING ADAPTIVE =================
+  // ================= SMOOTHING LEBIH STABIL =================
   let smoothing;
 
-  if(error > 25){
-    smoothing = 0.18;
+  if(error > 20){
+    smoothing = 0.15;
   } else if(error > 10){
-    smoothing = 0.12;
+    smoothing = 0.10;
   } else if(error > 5){
-    smoothing = 0.08;
+    smoothing = 0.07;
   } else if(error > 2){
-    smoothing = 0.05;
+    smoothing = 0.04;
   } else {
-    smoothing = 0.02; // super halus saat dekat
+    smoothing = 0.02;
   }
 
   smoothX += (targetX - smoothX) * smoothing;
@@ -341,17 +351,15 @@ function updateAR(alpha, beta, gamma){
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
 
-  // ================= FIX: HILANGKAN BACKGROUND =================
+  // ================= CLEAN VISUAL =================
   marker.style.background = "transparent";
   marker.style.border = "none";
   marker.style.boxShadow = "none";
 
   // ================= WARNA + AUDIO =================
   if(error < 3){
-    // 🟢 LOCK TARGET
     marker.style.color = "lime";
 
-    // 🔊 bunyi hanya sekali
     if(!locked){
       playBeep(1200, 200);
       navigator.vibrate && navigator.vibrate(200);
@@ -359,12 +367,10 @@ function updateAR(alpha, beta, gamma){
     }
 
   } else if(error < 10){
-    // 🟡 MENDEKATI
     marker.style.color = "yellow";
     locked = false;
 
   } else {
-    // 🔴 JAUH
     marker.style.color = "red";
     locked = false;
   }
