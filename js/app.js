@@ -294,7 +294,7 @@ function initSensor(){
   });
 }
 
-// ================= AR (ULTRA SMOOTH + SMART TRACKING) =================
+// ================= AR (ULTRA SMOOTH + CLEAN UI + NO SPAM AUDIO) =================
 function updateAR(alpha, beta, gamma){
   const marker = document.getElementById('marker');
   const wrapper = document.querySelector('.camera-wrapper');
@@ -332,7 +332,7 @@ function updateAR(alpha, beta, gamma){
   } else if(error > 2){
     smoothing = 0.05;
   } else {
-    smoothing = 0.02; // super halus saat mendekati
+    smoothing = 0.02; // super halus saat dekat
   }
 
   smoothX += (targetX - smoothX) * smoothing;
@@ -341,13 +341,17 @@ function updateAR(alpha, beta, gamma){
   marker.style.left = smoothX + "px";
   marker.style.top = smoothY + "px";
 
-  // ================= WARNA + AUDIO (NO SPAM) =================
-  if(error < 3){
-    // 🟢 TEPAT
-    marker.style.background = "lime";
-    marker.style.boxShadow = "0 0 20px lime";
+  // ================= FIX: HILANGKAN BACKGROUND =================
+  marker.style.background = "transparent";
+  marker.style.border = "none";
+  marker.style.boxShadow = "none";
 
-    // 🔊 bunyi HANYA SEKALI saat masuk area target
+  // ================= WARNA + AUDIO =================
+  if(error < 3){
+    // 🟢 LOCK TARGET
+    marker.style.color = "lime";
+
+    // 🔊 bunyi hanya sekali
     if(!locked){
       playBeep(1200, 200);
       navigator.vibrate && navigator.vibrate(200);
@@ -355,17 +359,13 @@ function updateAR(alpha, beta, gamma){
     }
 
   } else if(error < 10){
-    // 🟡 MENDEKATI (TANPA AUDIO)
-    marker.style.background = "yellow";
-    marker.style.boxShadow = "0 0 15px yellow";
-
+    // 🟡 MENDEKATI
+    marker.style.color = "yellow";
     locked = false;
 
   } else {
-    // 🔴 JAUH (TANPA AUDIO)
-    marker.style.background = "red";
-    marker.style.boxShadow = "0 0 10px red";
-
+    // 🔴 JAUH
+    marker.style.color = "red";
     locked = false;
   }
 }
