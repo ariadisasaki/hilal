@@ -304,6 +304,12 @@ function updateAR(alpha, beta, gamma){
   const width = wrapper.clientWidth;
   const height = wrapper.clientHeight;
 
+  // INIT posisi awal biar tidak loncat liar
+  if(smoothX === 0 && smoothY === 0){
+    smoothX = width / 2;
+    smoothY = height / 2;
+  }
+
   // ================= NORMALISASI =================
   let deltaAz = hilalData.azi - alpha;
   if(deltaAz > 180) deltaAz -= 360;
