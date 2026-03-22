@@ -217,7 +217,7 @@ function hitungHilal(lat, lon){
   let prediksiEl = document.getElementById('prediksi');
 
   if(alt < 0){
-    statusEl.innerText = "🌑 Di bawah horizon";
+    statusEl.innerText = "🌑 Bulan di bawah horizon";
     prediksiEl.innerText = "Tidak mungkin rukyat";
     return;
   }
