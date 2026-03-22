@@ -11,6 +11,7 @@ let smoothY = 0;
 
 let audioCtx = null;
 let locked = false;
+let lastBeepTime = 0;
 
 // ================= KONSTANTA =================
 const rad = Math.PI/180;
@@ -293,27 +294,88 @@ function initSensor(){
   });
 }
 
-// ================= AR =================
-function updateAR(alpha,beta,gamma){
-  const marker=document.getElementById('marker');
-  const wrapper=document.querySelector('.camera-wrapper');
+// ================= AR (ULTRA SMOOTH + SMART TRACKING) =================
+function updateAR(alpha, beta, gamma){
+  const marker = document.getElementById('marker');
+  const wrapper = document.querySelector('.camera-wrapper');
 
-  if(!marker||!wrapper) return;
+  if(!marker || !wrapper) return;
 
-  let deltaAz=hilalData.azi-alpha;
-  if(deltaAz>180) deltaAz-=360;
-  if(deltaAz<-180) deltaAz+=360;
+  const width = wrapper.clientWidth;
+  const height = wrapper.clientHeight;
 
-  let deltaAlt=hilalData.alt-gamma;
+  // ================= HITUNG SELISIH =================
+  let deltaAz = hilalData.azi - alpha;
+  if(deltaAz > 180) deltaAz -= 360;
+  if(deltaAz < -180) deltaAz += 360;
 
-  let x=wrapper.clientWidth/2+deltaAz*2;
-  let y=wrapper.clientHeight/2-deltaAlt*3;
+  let deltaAlt = hilalData.alt - gamma;
 
-  smoothX+=(x-smoothX)*0.1;
-  smoothY+=(y-smoothY)*0.1;
+  let error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
-  marker.style.left=smoothX+"px";
-  marker.style.top=smoothY+"px";
+  // ================= POSISI TARGET =================
+  let targetX = width/2 + deltaAz * 2;
+  let targetY = height/2 - deltaAlt * 3;
+
+  targetX = Math.max(20, Math.min(width - 20, targetX));
+  targetY = Math.max(20, Math.min(height - 20, targetY));
+
+  // ================= SMOOTHING ADAPTIVE =================
+  let smoothing;
+
+  if(error > 25){
+    smoothing = 0.18; // cepat (jauh)
+  } else if(error > 10){
+    smoothing = 0.12; // sedang
+  } else if(error > 5){
+    smoothing = 0.08; // mulai pelan
+  } else if(error > 2){
+    smoothing = 0.05; // halus banget
+  } else {
+    smoothing = 0.02; // super halus (ngunci)
+  }
+
+  smoothX += (targetX - smoothX) * smoothing;
+  smoothY += (targetY - smoothY) * smoothing;
+
+  marker.style.left = smoothX + "px";
+  marker.style.top = smoothY + "px";
+
+  // ================= WARNA + STATUS =================
+  let now = Date.now();
+
+  if(error < 3){
+    marker.style.background = "lime";
+    marker.style.boxShadow = "0 0 20px lime";
+
+    if(!locked){
+      playBeep(1200, 200);
+      navigator.vibrate && navigator.vibrate(200);
+      locked = true;
+    }
+
+  } else if(error < 10){
+    marker.style.background = "yellow";
+    marker.style.boxShadow = "0 0 15px yellow";
+
+    if(now - lastBeepTime > 800){
+      playBeep(900, 120);
+      lastBeepTime = now;
+    }
+
+    locked = false;
+
+  } else {
+    marker.style.background = "red";
+    marker.style.boxShadow = "0 0 10px red";
+
+    if(now - lastBeepTime > 1500){
+      playBeep(600, 80);
+      lastBeepTime = now;
+    }
+
+    locked = false;
+  }
 }
 
 // ================= AUDIO =================
