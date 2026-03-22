@@ -409,6 +409,6 @@ function requestNotif(){
 
 function showNotif(judul,pesan){
   if(Notification.permission==="granted"){
-    new Notification(judul,{body:pesan,icon:"assets/icon-512.png"});
+    new Notification(judul,{body:pesan,icon:"assets/icon-192.png"});
   }
 }
