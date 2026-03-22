@@ -358,7 +358,7 @@ function updateAR(alpha, beta, gamma){
     statusText.innerText = "⚠️ Hampir tepat";
     statusText.style.background = "#b58b00";
   } else {
-    statusText.innerText = "🔍 Arahkan ke hilal";
+    statusText.innerText = "🔍 Mengacu ke Data Hilal";
     statusText.style.background = "rgba(0,0,0,0.6)";
   }
 }
