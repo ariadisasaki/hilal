@@ -10,6 +10,8 @@ let smoothY = 0;
 let audioCtx = null;
 let locked = false;
 let beepCooldown = false;
+let headingOffset = 0;
+let calibrating = false;
 
 // ================= KONSTANTA =================
 const rad = Math.PI/180;
@@ -254,6 +256,10 @@ function hitungHilal(lat, lon){
 
   const age = elo/12.19*24;
 
+  // ================= ILUMINASI =================
+  const illumination = (1 - Math.cos(elo * rad)) / 2 * 100;
+  document.getElementById('illum').innerText = illumination.toFixed(2) + " %";
+
   // ================= OUTPUT =================
   hilalData.alt = alt;
   hilalData.azi = azi;
@@ -286,6 +292,30 @@ function hitungHilal(lat, lon){
   }
 
   return { alt, azi, elo, age };
+}
+
+// ================= JALUR BULAN =================
+function generateHilalPath(lat, lon){
+  let path = [];
+
+  for(let i=0;i<=60;i++){ // 60 menit ke depan
+    let future = new Date(Date.now() + i*60000);
+    let data = hitungHilalFuture(lat, lon, future);
+    path.push(data);
+  }
+
+  return path;
+}
+
+// ================= JALUR HILAL MENDATANG =================
+function hitungHilalFuture(lat, lon, time){
+  const nowBackup = Date.now;
+  Date.now = () => time.getTime();
+
+  const result = hitungHilal(lat, lon);
+
+  Date.now = nowBackup;
+  return result;
 }
 
 // ================= MAGHRIB =================
@@ -380,7 +410,7 @@ function updateAR(alpha, beta, gamma){
     smoothY = height/2;
   }
 
-  const heading = 360 - alpha;
+  const heading = (360 - alpha + headingOffset) % 360;
   const pitch = beta || 0;
   const roll  = gamma || 0;
 
@@ -429,6 +459,45 @@ function updateAR(alpha, beta, gamma){
   // 🔹 Update overlay AR untuk azimuth & altitude hilal
   if(azEl) azEl.innerText = `Azimuth: ${hilalData.azi.toFixed(2)}°`;
   if(altEl) altEl.innerText = `Altitude: ${hilalData.alt.toFixed(2)}°`;
+
+  const path = generateHilalPath(currentLat, currentLon);
+  
+  path.forEach(p=>{
+    // buat titik kecil di AR
+    const dot = document.createElement("div");
+    dot.className = "hilal-path-dot";
+    
+    const dx = (p.azi - heading) * 2;
+    const dy = (p.alt - pitch) * -2;
+    
+    dot.style.left = (width/2 + dx) + "px";
+    dot.style.top  = (height/2 + dy) + "px";
+    
+    wrapper.appendChild(dot);
+    
+    setTimeout(()=>dot.remove(),1000);
+  });
+}
+
+// ================= KALIBRASI KOMPAS =================
+function calibrateCompass(){
+  calibrating = true;
+  let samples = [];
+
+  const handler = (e)=>{
+    samples.push(e.alpha);
+
+    if(samples.length > 20){
+      let avg = samples.reduce((a,b)=>a+b)/samples.length;
+      headingOffset = avg - hilalData.azi;
+      calibrating = false;
+      window.removeEventListener("deviceorientation", handler);
+
+      alert("Kalibrasi selesai ✅");
+    }
+  };
+
+  window.addEventListener("deviceorientation", handler);
 }
 
 // ================= AUDIO =================
