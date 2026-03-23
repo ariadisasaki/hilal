@@ -254,7 +254,7 @@ function initSensor(){
   });
 }
 
-// ================= AR =================
+// ================= AR PRESISI =================
 function updateAR(alpha, beta, gamma){
   const marker = document.getElementById('marker');
   const wrapper = document.querySelector('.camera-wrapper');
@@ -263,47 +263,63 @@ function updateAR(alpha, beta, gamma){
   const width = wrapper.clientWidth;
   const height = wrapper.clientHeight;
 
+  // Posisi awal
   if(smoothX === 0 && smoothY === 0){
     smoothX = width/2;
     smoothY = height/2;
   }
 
+  // 🔹 Heading sebenarnya (kompas utara)
   const heading = 360 - alpha;
-  let deltaAz = hilalData.azi - heading;
+
+  // 🔹 Koreksi tilt ponsel
+  const pitch = beta || 0; // depan-belakang
+  const roll  = gamma || 0; // kiri-kanan
+
+  // 🔹 Delta posisi Bulan relatif ke kamera
+  let deltaAz  = hilalData.azi - heading;   // horizontal
+  let deltaAlt = hilalData.alt - pitch;     // vertical
+
+  // normalisasi deltaAz supaya -180..180
   if(deltaAz > 180) deltaAz -= 360;
   if(deltaAz < -180) deltaAz += 360;
-  let deltaAlt = hilalData.alt - gamma;
 
-  deltaAz = Math.max(-45, Math.min(45, deltaAz));
+  // 🔹 Batas realistis agar marker tidak keluar layar
+  deltaAz  = Math.max(-45, Math.min(45, deltaAz));
   deltaAlt = Math.max(-30, Math.min(30, deltaAlt));
-  const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
-  let targetX = width/2 + deltaAz * 1.6;
-  let targetY = height/2 - deltaAlt * 1.4;
+  // 🔹 Transform ke koordinat layar
+  let targetX = width/2 + deltaAz * 1.6 + roll*0.5;  // tambahkan roll untuk koreksi miring
+  let targetY = height/2 - deltaAlt * 1.4 - pitch*0.3; // pitch mempengaruhi tinggi
+
   targetX = Math.max(30, Math.min(width-30, targetX));
   targetY = Math.max(40, Math.min(height-40, targetY));
 
+  // 🔹 Smoothing halus
   smoothX += (targetX - smoothX) * 0.08;
   smoothY += (targetY - smoothY) * 0.06;
 
   marker.style.left = smoothX + "px";
-  marker.style.top = smoothY + "px";
+  marker.style.top  = smoothY + "px";
 
+  // 🔹 Warna + Audio berdasarkan error
+  const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
   const nowTime = Date.now();
+
   if(error < 6){
     marker.style.color = "lime";
     if(!locked && nowTime - lastBeepTime > 1000){
-      playBeep(1200,200);
+      playBeep(1200, 200);
       navigator.vibrate && navigator.vibrate(150);
       locked = true;
       lastBeepTime = nowTime;
     }
   } else if(error < 15){
     marker.style.color = "yellow";
-    locked=false;
+    locked = false;
   } else {
     marker.style.color = "red";
-    locked=false;
+    locked = false;
   }
 }
 
