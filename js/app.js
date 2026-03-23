@@ -302,6 +302,8 @@ function initSensor(){
 function updateAR(alpha, beta, gamma){
   const marker = document.getElementById('marker');
   const wrapper = document.querySelector('.camera-wrapper');
+  const azEl = document.getElementById('arAzimuth');  // overlay azimuth
+  const altEl = document.getElementById('arAltitude'); // overlay altitude
   if(!marker || !wrapper) return;
 
   const width = wrapper.clientWidth;
@@ -316,29 +318,34 @@ function updateAR(alpha, beta, gamma){
   const pitch = beta || 0;
   const roll  = gamma || 0;
 
+  // hitung delta dari azimuth & altitude hilal
   let deltaAz  = hilalData.azi - heading;
   let deltaAlt = hilalData.alt - pitch;
 
+  // normalize
   if(deltaAz > 180) deltaAz -= 360;
   if(deltaAz < -180) deltaAz += 360;
 
   deltaAz  = Math.max(-45, Math.min(45, deltaAz));
   deltaAlt = Math.max(-30, Math.min(30, deltaAlt));
 
+  // target posisi marker di layar
   let targetX = width/2 + deltaAz * 2 + roll*0.5;
   let targetY = height/2 - deltaAlt * 2 - pitch*0.3;
 
   targetX = Math.max(30, Math.min(width-30, targetX));
   targetY = Math.max(40, Math.min(height-40, targetY));
 
+  // smoothing
   smoothX += (targetX - smoothX) * 0.08;
   smoothY += (targetY - smoothY) * 0.06;
 
+  // update posisi marker
   marker.style.left = smoothX + "px";
   marker.style.top  = smoothY + "px";
 
+  // update warna marker & beep
   const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
-
   if(error < 5){
     marker.style.color = "lime";
     if(!beepCooldown){
@@ -352,6 +359,10 @@ function updateAR(alpha, beta, gamma){
   } else {
     marker.style.color = "red";
   }
+
+  // 🔹 Update overlay AR untuk azimuth & altitude hilal
+  if(azEl) azEl.innerText = `Az: ${hilalData.azi.toFixed(1)}°`;
+  if(altEl) altEl.innerText = `Alt: ${hilalData.alt.toFixed(1)}°`;
 }
 
 // ================= AUDIO =================
