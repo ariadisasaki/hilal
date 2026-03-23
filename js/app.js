@@ -26,15 +26,15 @@ window.onload = () => {
   setTimeout(()=>{
     showNotif("Hilal Checker","Aplikasi siap digunakan 🌙");
   },2000);
-};
 
-// AKTIFKAN AUDIO (WAJIB KLIK USER)
-document.body.addEventListener("click", () => {
-  if(!audioCtx){
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    console.log("Audio aktif");
-  }
-}, { once:true });
+  // 🔥 WAJIB: aktifkan audio setelah klik user
+  document.body.addEventListener("click", () => {
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      console.log("Audio aktif");
+    }
+  }, { once:true });
+};
 
 // ================= JAM =================
 function startClock(){
@@ -330,7 +330,6 @@ function initSensor(){
 
 // ================= AR (ULTRA SMOOTH + CLEAN UI + NO SPAM AUDIO) =================
 function updateAR(alpha, beta, gamma){
-function updateAR(alpha, beta, gamma){
   const marker = document.getElementById('marker');
   const wrapper = document.querySelector('.camera-wrapper');
 
@@ -339,12 +338,13 @@ function updateAR(alpha, beta, gamma){
   const width = wrapper.clientWidth;
   const height = wrapper.clientHeight;
 
+  // posisi awal
   if(smoothX === 0 && smoothY === 0){
     smoothX = width/2;
     smoothY = height/2;
   }
 
-  // 🔥 FIX UTAMA: heading kompas
+  // 🔥 FIX KOMPAS (WAJIB)
   let heading = 360 - alpha;
 
   let deltaAz = hilalData.azi - heading;
@@ -353,18 +353,20 @@ function updateAR(alpha, beta, gamma){
 
   let deltaAlt = hilalData.alt - gamma;
 
-  // limit
-  deltaAz = Math.max(-40, Math.min(40, deltaAz));
-  deltaAlt = Math.max(-25, Math.min(25, deltaAlt));
+  // batas realistis
+  deltaAz = Math.max(-45, Math.min(45, deltaAz));
+  deltaAlt = Math.max(-30, Math.min(30, deltaAlt));
 
   let error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
-  let targetX = width/2 + deltaAz * 1.5;
-  let targetY = height/2 - deltaAlt * 1.3;
+  // posisi target
+  let targetX = width/2 + deltaAz * 1.6;
+  let targetY = height/2 - deltaAlt * 1.4;
 
   targetX = Math.max(30, Math.min(width-30, targetX));
   targetY = Math.max(40, Math.min(height-40, targetY));
 
+  // smoothing halus
   smoothX += (targetX - smoothX) * 0.08;
   smoothY += (targetY - smoothY) * 0.06;
 
@@ -374,12 +376,13 @@ function updateAR(alpha, beta, gamma){
   // ================= WARNA + AUDIO =================
   let now = Date.now();
 
-  if(error < 6){ // 🔥 diperlebar (biar realistis)
+  if(error < 6){ // 🔥 diperlebar biar bisa kena
     marker.style.color = "lime";
 
     if(!locked && now - lastBeepTime > 1000){
       playBeep(1200, 200);
       navigator.vibrate && navigator.vibrate(150);
+
       locked = true;
       lastBeepTime = now;
     }
