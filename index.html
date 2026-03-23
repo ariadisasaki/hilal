@@ -77,9 +77,6 @@
       <button id="startARBtn">▶️ Mulai Kamera & Audio</button>
     </div>
 
-    <!-- NOTIFIKASI -->
-    <button onclick="requestNotif()">🔔 Aktifkan Notifikasi</button>
-
     <!-- FOOTER -->
     <div class="footer">
       Developed by 
@@ -94,7 +91,7 @@
   <script src="js/app.js"></script>
 
   <script>
-    // AR Button
+    // AR Button fallback (jika user belum klik layar)
     document.getElementById("startARBtn").addEventListener("click", ()=>{
       if(!audioCtx){
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
