@@ -102,42 +102,62 @@ function getHijri(lat, lon){
   document.getElementById('hijri').innerText = `🕌 ${d} ${bulan[hijriMonthIndex]} ${y} H`;
 }
 
-// ================= GPS =================
-function getLocation(){
-  navigator.geolocation.getCurrentPosition(async p=>{
-    let lat = p.coords.latitude;
-    let lon = p.coords.longitude;
+// ================= GPS / LOKASI =================
+function getLocation() {
+  // callback sukses
+  const success = async (position) => {
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
 
+    // tampilkan koordinat
     document.getElementById('loc').innerText = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
 
-    try{
-      let r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-      let d = await r.json();
-      let a = d.address||{};
-      let lokasi = [
-        a.village||a.town||a.city||"",
-        a.county||"",
-        a.state||"",
-        a.country||""
-      ].filter(v=>v).join(", ");
-      document.getElementById('lokasi').innerText = lokasi;
-    }catch{
-      document.getElementById('lokasi').innerText="Lokasi tidak tersedia";
+    // tampilkan nama lokasi
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+      const data = await res.json();
+      const a = data.address || {};
+      const lokasi = [
+        a.village || a.town || a.city || "",
+        a.county || "",
+        a.state || "",
+        a.country || ""
+      ].filter(v => v).join(", ");
+      document.getElementById('lokasi').innerText = lokasi || "Lokasi tidak tersedia";
+    } catch (err) {
+      document.getElementById('lokasi').innerText = "Lokasi tidak tersedia";
+      console.error("Error reverse geocoding:", err);
     }
 
+    // hitung Hijri & Hilal
+    getHijri(lat, lon);
+    hitungHilal(lat, lon);
+
+    // start kamera AR
+    startCam();
+
+    // auto-update Hijri tiap menit tanpa reload
+    autoUpdateHijri(lat, lon);
+  };
+
+  // callback gagal / fallback
+  const error = () => {
+    const lat = -8.5833;
+    const lon = 116.1167;
+
+    document.getElementById('loc').innerText = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+    document.getElementById('lokasi').innerText = "Lokasi default";
+
     getHijri(lat, lon);
     hitungHilal(lat, lon);
     startCam();
 
-  }, ()=>{
-    let lat=-8.5833, lon=116.1167;
-    document.getElementById('loc').innerText=`${lat}, ${lon}`;
-    document.getElementById('lokasi').innerText="Lokasi default";
+    // tetap aktifkan auto-update Hijri
+    autoUpdateHijri(lat, lon);
+  };
 
-    getHijri(lat, lon);
-    hitungHilal(lat, lon);
-    startCam();
-  },{enableHighAccuracy:true});
+  // request lokasi
+  navigator.geolocation.getCurrentPosition(success, error, { enableHighAccuracy: true });
 }
 
 // ================= HILAL =================
@@ -422,6 +442,25 @@ function startCam(){
   }).catch(()=>{
     alert("Izin kamera diperlukan");
   });
+}
+
+// ================= AUTO UPDATE HIJRI TANPA RELOAD =================
+function autoUpdateHijri(lat, lon){
+  const checkInterval = 60 * 1000; // cek tiap 1 menit
+
+  setInterval(()=>{
+    const now = new Date();
+    const jam = now.getHours() + now.getMinutes()/60;
+    const maghribData = hitungMaghrib(lat, lon);
+    const maghrib = maghribData ? maghribData.decimal : 18; // fallback
+
+    // update setelah maghrib
+    if(jam >= maghrib){
+      getHijri(lat, lon);       // update tanggal Hijri
+      hitungHilal(lat, lon);    // update data hilal
+      document.getElementById('arStatus').innerText = "🌙 Tanggal Hijri diperbarui otomatis";
+    }
+  }, checkInterval);
 }
 
 // ================= NOTIF =================
