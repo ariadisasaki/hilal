@@ -155,8 +155,8 @@ function getDeltaT(){
 }
 
 // ================= HILAL =================
-function hitungHilal(lat, lon){
-  const now = new Date();
+function hitungHilal(lat, lon, customTime){
+  const now = customTime || new Date();
 
   // ================= TIME =================
   const JD_UTC = (now/86400000)+2440587.5;
@@ -311,17 +311,7 @@ function generateHilalPath(lat, lon){
 
 // ================= JALUR HILAL MENDATANG =================
 function hitungHilalFuture(lat, lon, time){
-  const nowBackup = Date.now;
-
-  // paksa waktu = future
-  Date.now = () => time.getTime();
-
-  const result = hitungHilal(lat, lon);
-
-  // kembalikan normal
-  Date.now = nowBackup;
-
-  return result;
+  return hitungHilal(lat, lon, time);
 }
 
 // ================= MAGHRIB =================
