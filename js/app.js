@@ -313,12 +313,12 @@ function generateHilalPath(lat, lon){
 function hitungHilalFuture(lat, lon, time){
   const nowBackup = Date.now;
 
-  // 🔥 override waktu
+  // paksa waktu = future
   Date.now = () => time.getTime();
 
   const result = hitungHilal(lat, lon);
 
-  // 🔥 kembalikan normal
+  // kembalikan normal
   Date.now = nowBackup;
 
   return result;
