@@ -156,6 +156,64 @@ function getDeltaT(){
 
 // ================= HILAL =================
 function hitungHilal(lat, lon, customTime=null){
+  const data = hitungHilalCore(lat, lon, customTime);
+
+  const { alt, azi, elo, age, illumination } = data;
+
+  hilalData.alt = alt;
+  hilalData.azi = azi;
+
+  document.getElementById('alt').innerText = alt.toFixed(2);
+  document.getElementById('azi').innerText = azi.toFixed(2);
+  document.getElementById('elo').innerText = elo.toFixed(2);
+  document.getElementById('age').innerText = age.toFixed(1);
+  document.getElementById('illum').innerText = illumination.toFixed(2) + " %";
+
+  const statusEl = document.getElementById('status');
+  const prediksiEl = document.getElementById('prediksi');
+
+  if(alt < 0){
+    statusEl.innerText = "🌑 Bulan di bawah horizon";
+    prediksiEl.innerText = "Tidak mungkin rukyat";
+  } else {
+    const imkan = (alt>=3 && elo>=6.4 && age>=8);
+    const q = alt - (0.1018*Math.sqrt(elo));
+    const vis = q>0.216 ? "Mudah terlihat"
+              : q>-0.014 ? "Terlihat dengan alat"
+              : "Tidak terlihat";
+
+    if(tanggalHijriGlobal >= 29){
+      statusEl.innerText = imkan ? "✅ Imkan Rukyat" : "❌ Istikmal";
+      prediksiEl.innerText = vis;
+    } else {
+      statusEl.innerText = "ℹ️ Belum akhir bulan";
+      prediksiEl.innerText = vis;
+    }
+  }
+
+  return data;
+}
+
+// ================= JALUR BULAN =================
+function generateHilalPath(lat, lon){
+  let path = [];
+
+  for(let i=0;i<=60;i++){ // 60 menit ke depan
+    let future = new Date(Date.now() + i*60000);
+    let data = hitungHilalFuture(lat, lon, future);
+    path.push(data);
+  }
+
+  return path;
+}
+
+// ================= HITUNG HILAL MENDATANG =================
+function hitungHilalFuture(lat, lon, time){
+  return hitungHilal(lat, lon, time);
+}
+
+// ================= HITUNG HILAL CORE =================
+function hitungHilalCore(lat, lon, customTime=null){
   const now = customTime ? new Date(customTime) : new Date();
 
   // ================= TIME =================
@@ -265,60 +323,6 @@ function hitungHilal(lat, lon, customTime=null){
   // ================= OUTPUT =================
   hilalData.alt = alt;
   hilalData.azi = azi;
-
-  document.getElementById('alt').innerText = alt.toFixed(2);
-  document.getElementById('azi').innerText = azi.toFixed(2);
-  document.getElementById('elo').innerText = elo.toFixed(2);
-  document.getElementById('age').innerText = age.toFixed(1);
-
-  const statusEl = document.getElementById('status');
-  const prediksiEl = document.getElementById('prediksi');
-
-  if(alt < 0){
-    statusEl.innerText = "🌑 Bulan di bawah horizon";
-    prediksiEl.innerText = "Tidak mungkin rukyat";
-  } else {
-    const imkan = (alt>=3 && elo>=6.4 && age>=8);
-    const q = alt - (0.1018*Math.sqrt(elo));
-    const vis = q>0.216 ? "Mudah terlihat"
-              : q>-0.014 ? "Terlihat dengan alat"
-              : "Tidak terlihat";
-
-    if(tanggalHijriGlobal >= 29){
-      statusEl.innerText = imkan ? "✅ Imkan Rukyat" : "❌ Istikmal";
-      prediksiEl.innerText = vis;
-    } else {
-      statusEl.innerText = "ℹ️ Belum akhir bulan";
-      prediksiEl.innerText = vis;
-    }
-  }
-
-  return { alt, azi, elo, age };
-}
-
-// ================= JALUR BULAN =================
-function generateHilalPath(lat, lon){
-  let path = [];
-
-  for(let i=0;i<=60;i++){ // 60 menit ke depan
-    let future = new Date(Date.now() + i*60000);
-    let data = hitungHilalFuture(lat, lon, future);
-    path.push(data);
-  }
-
-  return path;
-}
-
-// ================= HITUNG HILAL MENDATANG =================
-function hitungHilalFuture(lat, lon, time){
-  return hitungHilal(lat, lon, time);
-}
-
-// ================= HITUNG HILAL CORE =================
-function hitungHilalCore(lat, lon, customTime=null){
-  const now = customTime ? new Date(customTime) : new Date();
-
-  // 🔥 copy semua isi hitungHilal TANPA bagian document.getElementById
 
   return { alt, azi, elo, age, illumination };
 }
