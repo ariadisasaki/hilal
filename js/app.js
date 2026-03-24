@@ -309,9 +309,18 @@ function generateHilalPath(lat, lon){
   return path;
 }
 
-// ================= JALUR HILAL MENDATANG =================
+// ================= HITUNG HILAL MENDATANG =================
 function hitungHilalFuture(lat, lon, time){
   return hitungHilal(lat, lon, time);
+}
+
+// ================= HITUNG HILAL CORE =================
+function hitungHilalCore(lat, lon, customTime=null){
+  const now = customTime ? new Date(customTime) : new Date();
+
+  // 🔥 copy semua isi hitungHilal TANPA bagian document.getElementById
+
+  return { alt, azi, elo, age, illumination };
 }
 
 // ================= MAGHRIB =================
