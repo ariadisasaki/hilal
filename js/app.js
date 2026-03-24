@@ -311,7 +311,17 @@ function generateHilalPath(lat, lon){
 
 // ================= JALUR HILAL MENDATANG =================
 function hitungHilalFuture(lat, lon, time){
-  return hitungHilal(lat, lon);
+  const nowBackup = Date.now;
+
+  // 🔥 override waktu
+  Date.now = () => time.getTime();
+
+  const result = hitungHilal(lat, lon);
+
+  // 🔥 kembalikan normal
+  Date.now = nowBackup;
+
+  return result;
 }
 
 // ================= MAGHRIB =================
