@@ -1,4 +1,3 @@
-/* ================= GENERAL ================= */
 * {
   margin: 0;
   padding: 0;
@@ -12,21 +11,18 @@ body {
   line-height: 1.5;
 }
 
-/* ================= HEADER ================= */
 .header {
   text-align: center;
   padding: 15px;
 }
 
-/* ================= CONTAINER ================= */
 .container {
-  width: 100%;
+  width: 95%;
   max-width: 500px;
   margin: auto;
   padding: 10px;
 }
 
-/* ================= CARD ================= */
 .card {
   background: rgba(255,255,255,0.08);
   padding: 15px;
@@ -35,7 +31,6 @@ body {
   backdrop-filter: blur(5px);
 }
 
-/* ================= DATA GRID ================= */
 .data-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -49,7 +44,6 @@ body {
   text-align: center;
 }
 
-/* ================= STATUS ================= */
 .status {
   padding: 5px;
   margin-top: 5px;
@@ -57,7 +51,6 @@ body {
   border-radius: 5px;
 }
 
-/* ================= CAMERA / AR ================= */
 .camera-wrapper {
   position: relative;
   width: 100%;
@@ -82,7 +75,6 @@ body {
   pointer-events: none;
 }
 
-/* Crosshair */
 .crosshair {
   position: absolute;
   top: 50%;
@@ -96,7 +88,6 @@ body {
   pointer-events: none;
 }
 
-/* AR overlay text */
 .ar-overlay {
   position: absolute;
   left: 5px;
@@ -106,7 +97,6 @@ body {
   font-size: 12px;
 }
 
-/* ================= FOOTER ================= */
 .footer {
   text-align: center;
   margin: 20px 0;
@@ -114,7 +104,6 @@ body {
   color: #888;
 }
 
-/* ================= SPLASH SCREEN ================= */
 #splash {
   position: fixed;
   top: 0;
