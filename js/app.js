@@ -14,6 +14,7 @@ let headingOffset = 0;
 let calibrating = false;
 let currentLat = 0;
 let currentLon = 0;
+let lastPathUpdate = 0;
 
 // ================= KONSTANTA =================
 const rad = Math.PI/180;
@@ -162,9 +163,6 @@ function hitungHilal(lat, lon){
   const deltaT = getDeltaT()/86400;
   const JD = JD_UTC + deltaT;
   const T = (JD - 2451545)/36525;
-
-  const rad = Math.PI/180;
-  const deg = 180/Math.PI;
 
   // ================= OBLIQUITY + NUTATION =================
   const U = T/100;
@@ -458,23 +456,25 @@ function updateAR(alpha, beta, gamma){
   if(azEl) azEl.innerText = `Azimuth: ${hilalData.azi.toFixed(2)}°`;
   if(altEl) altEl.innerText = `Altitude: ${hilalData.alt.toFixed(2)}°`;
 
+  if(Date.now() - lastPathUpdate > 2000){
+  lastPathUpdate = Date.now();
+
   const path = generateHilalPath(currentLat, currentLon);
-  
+
   path.forEach(p=>{
-    // buat titik kecil di AR
     const dot = document.createElement("div");
     dot.className = "hilal-path-dot";
-    
+
     const dx = (p.azi - heading) * 2;
     const dy = (p.alt - pitch) * -2;
-    
+
     dot.style.left = (width/2 + dx) + "px";
     dot.style.top  = (height/2 + dy) + "px";
-    
+
     wrapper.appendChild(dot);
-    
-    setTimeout(()=>dot.remove(),1000);
+    setTimeout(()=>dot.remove(),1500);
   });
+}
 }
 
 // ================= KALIBRASI KOMPAS =================
@@ -487,7 +487,7 @@ function calibrateCompass(){
 
     if(samples.length > 20){
       let avg = samples.reduce((a,b)=>a+b)/samples.length;
-      headingOffset = avg - hilalData.azi;
+      headingOffset = 360 - avg;
       calibrating = false;
       window.removeEventListener("deviceorientation", handler);
 
