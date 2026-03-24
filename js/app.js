@@ -209,7 +209,7 @@ function generateHilalPath(lat, lon){
 
 // ================= HITUNG HILAL MENDATANG =================
 function hitungHilalFuture(lat, lon, time){
-  return hitungHilal(lat, lon, time);
+  return hitungHilalCore(lat, lon, time);
 }
 
 // ================= HITUNG HILAL CORE =================
