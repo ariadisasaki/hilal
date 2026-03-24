@@ -155,8 +155,8 @@ function getDeltaT(){
 }
 
 // ================= HILAL =================
-function hitungHilal(lat, lon, customTime){
-  const now = customTime || new Date();
+function hitungHilal(lat, lon, customTime=null){
+  const now = customTime ? new Date(customTime) : new Date();
 
   // ================= TIME =================
   const JD_UTC = (now/86400000)+2440587.5;
