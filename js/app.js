@@ -156,10 +156,16 @@ function getDeltaT(){
 
 // ================= HILAL =================
 function hitungHilal(lat, lon, customTime=null){
+  const statusEl = document.getElementById('status');
+  const prediksiEl = document.getElementById('prediksi');
+
+  // 🔹 Status sementara saat menghitung
+  statusEl.innerText = "⏳ Menghitung hilal...";
+  prediksiEl.innerText = "";
+
   const data = hitungHilalCore(lat, lon, customTime);
 
   const { alt, azi, elo, age, illumination } = data;
-
   hilalData.alt = alt;
   hilalData.azi = azi;
 
@@ -168,9 +174,6 @@ function hitungHilal(lat, lon, customTime=null){
   document.getElementById('elo').innerText = elo.toFixed(2);
   document.getElementById('age').innerText = age.toFixed(1);
   document.getElementById('illum').innerText = illumination.toFixed(2) + " %";
-
-  const statusEl = document.getElementById('status');
-  const prediksiEl = document.getElementById('prediksi');
 
   if(alt < 0){
     statusEl.innerText = "🌑 Bulan di bawah horizon";
