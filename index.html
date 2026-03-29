@@ -81,19 +81,21 @@
       <button id="startARBtn">▶️ AR & Audio</button>
       <button id="calibrateBtn">🧭 Kalibrasi Kompas</button>
     </div>
-
-    <!-- FOOTER -->
-    <div class="footer">
-      Developed by 
-      <a href="https://www.facebook.com/share/1C8bjd7Xoh" target="_blank">
-        Ariadi Forester
-      </a>
+    
+    <div id="menuBtn" class="menu-btn">☰</div>
+    <!-- Overlay -->
+    <div id="overlay" class="overlay"></div>
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+      <h3>🌙 Menu</h3>
+      <button onclick="location.reload()">🔄 Refresh</button>
+      <button onclick="startCam(); closeMenu()">📷 Aktifkan Kamera</button>
+      <button onclick="calibrateCompass(); closeMenu()">🧭 Kalibrasi Kompas</button>
+      <button onclick="calibrateWithSun(); closeMenu()">☀️ Kalibrasi Matahari</button>
+      <button onclick="window.open('https://www.facebook.com/share/1C8bjd7Xoh','_blank')">👨‍💻 Developer</button>
     </div>
-
   </div>
-
   <script src="js/app.js"></script>
-
   <script>
     document.getElementById("startARBtn").addEventListener("click", ()=>{
       if(!audioCtx){
@@ -102,18 +104,50 @@
       }
       document.getElementById("arStatus").innerText = "AR & Audio siap digunakan";
     });
-
-    window.addEventListener("load", ()=>{
-      setTimeout(()=>{
-        document.getElementById("splash").style.opacity="0";
-        setTimeout(()=>{
-          document.getElementById("splash").style.display="none";
-        },500);
-      },2000);
+    
+    window.addEventListener("load", () => {
+      const splash = document.getElementById("splash");
+      
+      // 🔒 cegah error kalau elemen tidak ditemukan
+      if (!splash) return;
+      
+      // ⏳ durasi tampil splash
+      setTimeout(() => {
+        
+        // 🎬 animasi fade out
+        splash.style.opacity = "0";
+        splash.style.visibility = "hidden";
+        
+        // 🧹 hapus dari tampilan setelah animasi selesai
+        setTimeout(() => {
+          splash.style.display = "none";
+        }, 500);
+      
+      }, 1800); // bisa ubah (1500 - 2500)
     });
 
     if("serviceWorker" in navigator){
       navigator.serviceWorker.register("sw.js");
+    }
+  </script>
+
+  <script>
+    const menuBtn = document.getElementById("menuBtn");
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
+    
+    menuBtn.addEventListener("click", ()=>{
+      sidebar.classList.toggle("active");
+      overlay.classList.toggle("active");
+    });
+    
+    overlay.addEventListener("click", ()=>{
+      closeMenu();
+    });
+    
+    function closeMenu(){
+      sidebar.classList.remove("active");
+      overlay.classList.remove("active");
     }
   </script>
 
