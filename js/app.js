@@ -587,6 +587,83 @@ function hitungHilalCore(lat, lon, customTime=null){
   return { alt, azi, elo, age, illumination };
 }
 
+// ================= HITUNG MATAHARI =================
+function hitungMatahari(lat, lon){
+  const now = new Date();
+
+  const JD = (now/86400000)+2440587.5;
+  const T = (JD-2451545)/36525;
+
+  const L0 = (280.46646 + 36000.76983*T)%360;
+  const M = 357.52911 + 35999.05029*T;
+
+  const C = (1.914602 - 0.004817*T)*Math.sin(M*rad)
+          + (0.019993 - 0.000101*T)*Math.sin(2*M*rad)
+          + 0.000289*Math.sin(3*M*rad);
+
+  const lambda = L0 + C;
+
+  const epsilon = 23.439291 - 0.0130042*T;
+
+  const RA = Math.atan2(
+    Math.cos(epsilon*rad)*Math.sin(lambda*rad),
+    Math.cos(lambda*rad)
+  )*deg;
+
+  const Dec = Math.asin(
+    Math.sin(epsilon*rad)*Math.sin(lambda*rad)
+  )*deg;
+
+  const GMST = (280.46061837 + 360.98564736629*(JD-2451545)) % 360;
+  const LST = GMST + lon;
+  const HA = (LST - RA);
+
+  let alt = Math.asin(
+    Math.sin(lat*rad)*Math.sin(Dec*rad) +
+    Math.cos(lat*rad)*Math.cos(Dec*rad)*Math.cos(HA*rad)
+  )*deg;
+
+  let azi = Math.atan2(
+    -Math.sin(HA*rad),
+    Math.tan(Dec*rad)*Math.cos(lat*rad) -
+    Math.sin(lat*rad)*Math.cos(HA*rad)
+  )*deg;
+
+  if(azi < 0) azi += 360;
+
+  return { alt, azi };
+}
+
+// ================= KALIBRASI MATAHARI =================
+function calibrateWithSun(){
+  if(!currentLat || !currentLon){
+    alert("Lokasi belum tersedia");
+    return;
+  }
+
+  alert("Arahkan kamera tepat ke Matahari ☀️ lalu tekan OK");
+
+  setTimeout(()=>{
+    const sun = hitungMatahari(currentLat, currentLon);
+
+    // Ambil arah HP sekarang
+    let heading;
+
+    if(window.lastAlpha !== undefined){
+      heading = lastAlpha;
+    } else {
+      alert("Sensor belum siap");
+      return;
+    }
+
+    // Hitung offset
+    headingOffset = (sun.azi - heading + 360) % 360;
+
+    alert("Kalibrasi Matahari berhasil ✅\nOffset: " + headingOffset.toFixed(2) + "°");
+
+  }, 1000);
+}
+
 // ================= MAGHRIB =================
 function hitungMaghrib(lat, lon){
   const now = new Date();
@@ -665,6 +742,7 @@ function initSensor(){
     gamma = lastGamma + (gamma - lastGamma) * 0.05;
 
     lastAlpha = alpha;
+      window.lastAlpha = alpha;
     lastBeta  = beta;
     lastGamma = gamma;
 
@@ -811,9 +889,41 @@ function playBeep(freq=800, duration=100){
 
 // ================= CAMERA =================
 function startCam(){
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
-  .then(s => document.getElementById('cam').srcObject = s)
-  .catch(()=> alert("Izin kamera diperlukan"));
+  const video = document.getElementById('cam');
+  const status = document.getElementById('arStatus');
+
+  if(!video) return;
+
+  // tampilkan status loading
+  if(status){
+    status.innerText = "Mengaktifkan kamera...";
+  }
+
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'environment' },
+    audio: false
+  })
+  .then(stream => {
+    video.srcObject = stream;
+
+    video.onloadedmetadata = () => {
+      video.play();
+
+      // 🔥 update status saat kamera siap
+      if(status){
+        status.innerText = "📷 Kamera aktif";
+      }
+    };
+  })
+  .catch(err => {
+    console.error(err);
+
+    if(status){
+      status.innerText = "❌ Kamera gagal";
+    }
+
+    alert("Izin kamera diperlukan");
+  });
 }
 
 // ================= NOTIF =================
