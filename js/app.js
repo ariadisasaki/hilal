@@ -51,9 +51,6 @@ window.onload = () => {
   }, { once:true });
 
   // ====== UPDATE IJTIMA REALTIME ======
-  // Default dulu, nanti akan diupdate oleh getLocation()
-  const defaultLat = -8.5833;
-  const defaultLon = 116.1167;
   updateIjtimaRealtime(defaultLat, defaultLon);
 };
 
@@ -127,70 +124,124 @@ function updateIjtimaRealtime(lat, lon){
   const el = document.getElementById("ijtima");
   if(!el) return;
 
-  // clear interval lama agar tidak menumpuk
   if(ijtimaInterval) clearInterval(ijtimaInterval);
 
-  const data = cariIjtima(lat, lon);
-  if(!data.time){
-    el.innerText = "Ijtima tidak ditemukan";
-    return;
-  }
-
-  const t = data.time;
+  // 🔥 hitung SEKALI (biar tidak berat)
+  const t = getIjtimaTerakhir(lat, lon);
+  const next = getIjtimaBerikutnya(lat, lon);
 
   ijtimaInterval = setInterval(()=>{
     const now = new Date();
-    let diff = t - now; // selisih ms
-    let statusText = "";
 
-    if(diff > 0){
-      const jam = Math.floor(diff / (1000*60*60));
-      const menit = Math.floor((diff % (1000*60*60)) / (1000*60));
-      const detik = Math.floor((diff % (1000*60)) / 1000);
-      statusText = `Hitung Mundur ⏳ ${jam}j ${menit}m ${detik}s`;
-    } else {
-      diff = -diff;
-      const jam = Math.floor(diff / (1000*60*60));
-      const menit = Math.floor((diff % (1000*60*60)) / (1000*60));
-      const detik = Math.floor((diff % (1000*60)) / 1000);
-      statusText = `Hitung Maju ⏱ ${jam}j ${menit}m ${detik}s`;
-    }
+    // 🔹 sejak ijtima
+    const totalDetik = Math.floor((now - t) / 1000);
+    
+    const jam = Math.floor(totalDetik / 3600);
+    const menit = Math.floor((totalDetik % 3600) / 60);
+    const detik = totalDetik % 60;
+    
+    // 🔹 menuju ijtima berikutnya
+    const totalDetikNext = Math.floor((next - now) / 1000);
+    
+    const jamNext = Math.floor(totalDetikNext / 3600);
+    const menitNext = Math.floor((totalDetikNext % 3600) / 60);
+    const detikNext = totalDetikNext % 60;
 
-    const tanggal = t.toLocaleDateString('id-ID', {
+    // 🔹 format tanggal
+    const tanggal = t.toLocaleString('id-ID', {
       day: 'numeric',
       month: 'long',
-      year: 'numeric'
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     });
 
-    el.innerText = `🌑 Ijtima: ${tanggal}\n${statusText}`;
+    // 🔥 tampilkan ke UI
+    el.innerText =
+      `🌑 Ijtima: ${tanggal}\n` +
+      `⏱ Sejak Ijtima: ${jam}j ${menit}m ${detik}d\n` +
+      `⏳ Menuju Ijtima: ${jamNext}j ${menitNext}m ${detikNext}d`;
   }, 1000);
 }
 
-// =============== CARI IJTIMA ===============
-function cariIjtima(lat, lon){
+// ==== IJTIMA PRESISI ====
+function cariIjtimaPresisi(lat, lon){
+  let t1 = new Date(Date.now() - 2 * 24 * 3600 * 1000);
+  let t2 = new Date(Date.now() + 2 * 24 * 3600 * 1000);
+
+  let f1 = selisihRA(lat, lon, t1);
+  let f2 = selisihRA(lat, lon, t2);
+
+  // 🔥 VALIDASI WAJIB
+  if(f1 * f2 > 0){
+    console.warn("Root tidak ditemukan dalam range ini!");
+    return cariIjtimaTerdekat(lat, lon); // fallback
+  }
+
+  // 🔁 BISECTION
+  for(let i = 0; i < 30; i++){
+    let tMid = new Date((t1.getTime() + t2.getTime()) / 2);
+    let fMid = selisihRA(lat, lon, tMid);
+
+    if(f1 * fMid < 0){
+      t2 = tMid;
+      f2 = fMid;
+    } else {
+      t1 = tMid;
+      f1 = fMid;
+    }
+  }
+
+  return new Date((t1.getTime() + t2.getTime()) / 2);
+}
+
+// =============== CARI IJTIMA TERDEKAT ===============
+function cariIjtimaTerdekat(lat, lon){
   const now = new Date();
 
   let minElo = 999;
   let waktuIjtima = null;
 
-  // 🔍 scan ±1 hari (per 5 menit)
-  for(let i = -144; i <= 144; i++){ // 144 x 10 menit = 24 jam
-    let t = new Date(now.getTime() + i * 10 * 60000);
-
+  for(let i = -7200; i <= 7200; i++){
+    let t = new Date(now.getTime() + i * 60000);
     let data = hitungHilalCore(lat, lon, t);
-    let elo = data.elo;
 
-    if(elo < minElo){
-      minElo = elo;
+    if(data.elo < minElo){
+      minElo = data.elo;
       waktuIjtima = t;
     }
   }
 
-  return {
-    time: waktuIjtima,
-    elo: minElo
-  };
-}                  
+  return waktuIjtima;
+}
+
+// =============== IJTIMA TERAKHIR ===========
+function getIjtimaTerakhir(lat, lon){
+  const now = new Date();
+
+  let t = cariIjtimaPresisi(lat, lon);
+
+  if(t > now){
+    t = new Date(t.getTime() - 29.530588 * 24 * 3600 * 1000);
+  }
+
+  return t;
+}
+
+// =============== IJTIMA BERIKUTNYA ===========
+function getIjtimaBerikutnya(lat, lon){
+  const last = getIjtimaTerakhir(lat, lon);
+  return new Date(last.getTime() + 29.530588 * 24 * 3600 * 1000);
+}
+
+// ======= SELISIH RA =======
+function selisihRA(lat, lon, time){
+  const data = hitungHilalCore(lat, lon, time);
+
+  // RA Matahari & Bulan harus kamu ambil dari core
+  return data.sunRA - data.moonRA;
+}
 
 // ================= JAM =================
 function startClock(){
@@ -603,7 +654,15 @@ function hitungMatahari(lat, lon){
 
   if(azi < 0) azi += 360;
 
-  return { alt, azi };
+  return {
+    alt, 
+    azi, 
+    elo, 
+    age, 
+    illumination, 
+    sunRA, 
+    moonRA
+  };
 }
 
 // ================= KALIBRASI MATAHARI =================
