@@ -294,7 +294,7 @@ ${alt > 0 ? "Bulan sudah di atas ufuk dan berpotensi terlihat." : "Bulan masih d
 <br><br>
 
 🧭 <b>Azimuth:</b> ${azi.toFixed(2)}°<br>
-Menunjukkan arah bulan dari utara (0° = Utara, 90° = Timur, 270° = Barat).
+Menunjukkan arah bulan dari utara (0° = Utara, 90° = Timur, 180° = Selatan, 270° = Barat).
 <br><br>
 
 📐 <b>Elongasi:</b> ${elo.toFixed(2)}°<br>
