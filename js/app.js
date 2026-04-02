@@ -536,29 +536,26 @@ function hitungHilal(lat, lon, customTime=null){
   const data = hitungHilalCore(lat, lon, customTime);
 
   const { alt, azi, elo, age, illumination } = data;
-  
-  // === PROGRESS BAR ===
-  const now = new Date();
-  const maghribData = hitungMaghrib(currentLat, currentLon);
-  const maghrib = maghribData ? maghribData.decimal : 18;
-  
-  const progress = getProgressToMaghrib(now, maghrib);
-  document.getElementById('progressBar').style.width = progress + "%";
 
-  // === INSIGHT ====
-  const now = new Date();
-  const maghribData = hitungMaghrib(currentLat, currentLon);
-  const maghrib = maghribData ? maghribData.decimal : 18;
-  
-  const insight = getHijriInsight({ alt, azi, elo, age, illumination }, maghrib, now);
-  hilalDataFull = { alt, azi, elo, age, illumination };
-  
-  document.getElementById('insight').innerHTML = insight;
+  // === PROGRESS + DATA WAKTU ===
+const now = new Date();
+const maghribData = hitungMaghrib(currentLat, currentLon);
+const maghrib = maghribData ? maghribData.decimal : 18;
 
-  // === HITUNG MUNDUR MAGHRIB ====
-  const countdown = getCountdownMaghrib(now, maghrib);
-  document.getElementById('countdownMaghrib').innerText = countdown;
+// === PROGRESS BAR ===
+const progress = getProgressToMaghrib(now, maghrib);
+document.getElementById('progressBar').style.width = progress + "%";
 
+// === INSIGHT ===
+const insight = getHijriInsight({ alt, azi, elo, age, illumination }, maghrib, now);
+hilalDataFull = { alt, azi, elo, age, illumination };
+
+document.getElementById('insight').innerHTML = insight;
+
+// === COUNTDOWN ===
+const countdown = getCountdownMaghrib(now, maghrib);
+document.getElementById('countdownMaghrib').innerText = countdown;
+  
   hilalData.alt = alt;
   hilalData.azi = azi;
 
