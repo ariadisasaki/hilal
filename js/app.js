@@ -460,12 +460,6 @@ function getDeltaT(){
   return 64.7 + 64.5*t + 0.21*t*t; // aproksimasi Meeus modern
 }
 
-// === HIJRI PROGRESS ===
-function getNextHijriProgress(age){
-  const jamDalamHari = age % 24; // sisa jam dalam 1 hari hijriah
-  return (jamDalamHari / 24) * 100;
-}
-
 // === HITUNG MUNDUR NAGHRIB ===
 function getCountdownMaghrib(now, maghrib){
   const jamSekarang = now.getHours() + now.getMinutes()/60;
@@ -537,25 +531,6 @@ function hitungHilal(lat, lon, customTime=null){
 
   const { alt, azi, elo, age, illumination } = data;
 
-  // === PROGRESS + DATA WAKTU ===
-const now = new Date();
-const maghribData = hitungMaghrib(currentLat, currentLon);
-const maghrib = maghribData ? maghribData.decimal : 18;
-
-// === PROGRESS BAR ===
-const progress = getProgressToMaghrib(now, maghrib);
-document.getElementById('progressBar').style.width = progress + "%";
-
-// === INSIGHT ===
-const insight = getHijriInsight({ alt, azi, elo, age, illumination }, maghrib, now);
-hilalDataFull = { alt, azi, elo, age, illumination };
-
-document.getElementById('insight').innerHTML = insight;
-
-// === COUNTDOWN ===
-const countdown = getCountdownMaghrib(now, maghrib);
-document.getElementById('countdownMaghrib').innerText = countdown;
-  
   hilalData.alt = alt;
   hilalData.azi = azi;
 
