@@ -501,8 +501,27 @@ function renderUI(){
   document.getElementById('countdownMaghrib').innerText = countdown;
 
   // ✅ Progress bar
-  const progress = getNextHijriProgress(hilalDataFull.age);
+  const progress = getProgressToMaghrib(now, maghrib);
   document.getElementById('progressBar').style.width = progress + "%";
+}
+
+// ==== PROGRESS BAR ====
+function getProgressToMaghrib(now, maghrib){
+
+  const jamSekarang = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
+
+  let progress;
+
+  if(jamSekarang < maghrib){
+    // dari 00:00 ke maghrib
+    progress = (jamSekarang / maghrib) * 100;
+  } else {
+    // dari maghrib ke maghrib besok
+    const sisaHari = 24 - maghrib;
+    progress = ((jamSekarang - maghrib) / sisaHari) * 100;
+  }
+
+  return Math.max(0, Math.min(100, progress));
 }
 
 // ================= HILAL =================
@@ -519,7 +538,11 @@ function hitungHilal(lat, lon, customTime=null){
   const { alt, azi, elo, age, illumination } = data;
   
   // === PROGRESS BAR ===
-  const progress = getNextHijriProgress(age);
+  const now = new Date();
+  const maghribData = hitungMaghrib(currentLat, currentLon);
+  const maghrib = maghribData ? maghribData.decimal : 18;
+  
+  const progress = getProgressToMaghrib(now, maghrib);
   document.getElementById('progressBar').style.width = progress + "%";
 
   // === INSIGHT ====
