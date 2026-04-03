@@ -288,6 +288,7 @@ function getHijriInsight(data, maghrib, now){
   const statusWaktu = jam < maghrib ? "Sebelum Maghrib" : "Setelah Maghrib";
   
   const ijtima = getIjtimaGlobal();
+  const ijtimaStr = formatTanggalIndonesia(ijtima);
 
   return `
 🔭 <b>Tinggi Bulan:</b> ${alt.toFixed(2)}°<br>
@@ -296,7 +297,7 @@ ${alt > 0 ? "Bulan sudah di atas ufuk dan berpotensi terlihat." : "Bulan masih d
 <br><br>
 
 🧭 <b>Azimuth:</b> ${azi.toFixed(2)}°<br>
-Menunjukkan arah bulan dari utara (0° = Utara, 90° = Timur, 270° = Barat).
+Menunjukkan arah bulan dari utara (0° = Utara, 90° = Timur, 180° = Selatan, 270° = Barat).
 <br><br>
 
 📐 <b>Elongasi:</b> ${elo.toFixed(2)}°<br>
@@ -315,7 +316,7 @@ Hari Hijriah dimulai saat Maghrib, bukan tengah malam.
 🌙 <b>Umur Bulan:</b> ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
 
 🕋 <b>Ijtima :</b><br>
-${ijtima.toLocaleString('id-ID')}<br><br>
+${formatTanggalIndonesia(ijtima)}<br><br>
 
 <b>Penjelasan:</b><br>
 Walaupun umur bulan mendekati ${(age/24).toFixed(0)} hari,
@@ -327,6 +328,24 @@ tanggal Hijriah tetap ${tanggalHijriGlobal} karena:<br>
 <b>Perkiraan:</b><br>
 Sekitar ${(24 - (age % 24)).toFixed(1)} jam lagi menuju fase hari berikutnya.
 `;
+}
+
+// === TANGGAL INDONESIA ===
+function formatTanggalIndonesia(date){
+  const bulan = [
+    "Januari","Februari","Maret","April","Mei","Juni",
+    "Juli","Agustus","September","Oktober","November","Desember"
+  ];
+
+  const d = date.getDate();
+  const m = bulan[date.getMonth()];
+  const y = date.getFullYear();
+
+  const jam = String(date.getHours()).padStart(2,'0');
+  const menit = String(date.getMinutes()).padStart(2,'0');
+  const detik = String(date.getSeconds()).padStart(2,'0');
+
+  return `${d} ${m} ${y} - Pkl. ${jam}:${menit}:${detik}`;
 }
 
 // ================= IJTIMA GLOBAL =================
