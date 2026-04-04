@@ -112,45 +112,37 @@ function getLocation(){
         hitungHilal(lat, lon);
         startCam();
         autoReloadAtMaghrib(lat, lon);
-
-        // ================= INTERVAL =================
-
-        // 🔁 Update hilal tiap 10 detik (berat)
+        
+        // ================= INTERVAL FINAL =================
+        // 🔁 Hitung hilal (berat → tiap 10 detik)
         setInterval(()=>{
-            hitungHilal(currentLat, currentLon);
-        }, 10 * 1000);
+          hitungHilal(currentLat, currentLon);
+        }, 10000);
+        
+        // 🔁 Update Hijriah (tiap 1 menit)
+        setInterval(()=>{
+          updateHijriRealTime(currentLat, currentLon);
+        }, 60000);
       
-        // ✅ UI update tiap detik (smooth)
+        // 🔁 UI Realtime
         setInterval(()=>{
           renderUI();
+          updatePrediksiCard();
         }, 1000);
-
-        // 🔁 Update hijri tiap 1 menit
+      
+        // 🔥 Insight + countdown (opsional kalau mau pisah)
         setInterval(()=>{
-            updateHijriRealTime(currentLat, currentLon);
-        }, 60 * 1000);
-
-        // 🔥 REALTIME UI (RINGAN - 1 DETIK)
-        setInterval(()=>{
-            const now = new Date();
-
-            const maghribData = hitungMaghrib(currentLat, currentLon);
-            const maghrib = maghribData ? maghribData.decimal : 18;
-
-            const ageEl = document.getElementById('age');
-            const insightEl = document.getElementById('insight');
-            const countdownEl = document.getElementById('countdownMaghrib');
-
-            const age = parseFloat(ageEl.innerText) || 0;
-
-            // 🔹 Update insight
-            const insight = getHijriInsight(hilalDataFull, maghrib, now);
-            insightEl.innerHTML = insight;
-
-            // 🔹 Update countdown
-            const countdown = getCountdownMaghrib(now, maghrib);
-            countdownEl.innerText = countdown;
-
+          const now = new Date();
+          
+          const maghribData = hitungMaghrib(currentLat, currentLon);
+          const maghrib = maghribData ? maghribData.decimal : 18;
+          
+          const insight = getHijriInsight(hilalDataFull, maghrib, now);
+          document.getElementById('insight').innerHTML = insight;
+          
+          const countdown = getCountdownMaghrib(now, maghrib);
+          document.getElementById('countdownMaghrib').innerText = countdown;
+        
         }, 1000);
 
     }, ()=>{
@@ -190,11 +182,13 @@ function getLocation(){
 
             const age = parseFloat(document.getElementById('age').innerText) || 0;
 
-            const insight = getHijriInsight(age, maghrib, now);
+            const insight = getHijriInsight(hilalDataFull, maghrib, now);;
             document.getElementById('insight').innerHTML = insight;
 
             const countdown = getCountdownMaghrib(now, maghrib);
             document.getElementById('countdownMaghrib').innerText = countdown;
+          
+            updatePrediksiCard();
 
         }, 1000);
 
@@ -316,21 +310,6 @@ Semakin besar elongasi, semakin besar peluang hilal terlihat.
 Menunjukkan fase bulan (semakin besar → semakin terang).
 <br><br>
 
-⏳ <b>Status Waktu:</b> ${statusWaktu}<br>
-Hari Hijriah dimulai saat Maghrib, bukan tengah malam.
-<br><br>
-
-🕋 <b>Ijtima Terakhir :</b><br>
-${ijtimaStr}<br><br>
-
-<b>Status Ijtima:</b> ${statusIjtima}<br><br>
-
-🔮 <b>Ijtima Berikutnya :</b><br>
-${ijtimaNextStr}<br><br>
-
-⏳ <b>Menuju Ijtima:</b><br>
-${countdownIjtima}<br><br>
-
 🌙 <b>Umur Bulan:</b> ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
 
 <b>Penjelasan:</b><br>
@@ -342,6 +321,30 @@ tanggal Hijriah tetap ${tanggalHijriGlobal} karena:<br>
 
 <b>Perkiraan:</b><br>
 Sekitar ${(24 - (age % 24)).toFixed(1)} jam lagi menuju fase hari berikutnya.
+
+<br><br>
+
+<b>📘 Penjelasan Prediksi Hilal:</b><br><br>
+
+🔭 <b>Metode Yallop</b><br>
+Digunakan secara internasional untuk menentukan apakah hilal bisa terlihat.
+Kategori A–B mudah terlihat, sedangkan E berarti tidak mungkin terlihat.<br><br>
+
+🔭 <b>Metode Odeh</b><br>
+Metode modern yang mirip Yallop, digunakan dalam penelitian rukyat.
+Menunjukkan apakah hilal bisa dilihat dengan mata atau alat bantu.<br><br>
+
+📊 <b>Visibility Score</b><br>
+Persentase peluang terlihatnya hilal berdasarkan tinggi, elongasi, dan umur bulan.
+Semakin tinggi nilainya, semakin besar kemungkinan hilal terlihat.<br><br>
+
+🌑 <b>Ijtima (Konjungsi)</b><br>
+Adalah saat bulan dan matahari sejajar. Ini adalah awal fase bulan baru,
+tetapi hilal belum tentu langsung terlihat setelah ijtima.<br><br>
+
+<b>Kesimpulan:</b><br>
+Penentuan awal bulan Hijriah tidak hanya berdasarkan ijtima,
+tetapi juga kemungkinan hilal dapat dirukyat saat Maghrib.
 `;
 }
 
@@ -450,21 +453,32 @@ function updateHijriRealTime(lat, lon){
 
     if(jam >= maghrib){
 
-        const hilal = hitungHilal(lat, lon);
+        const hilal = hitungHilalCore(lat, lon);
         const ijtima = getIjtimaGlobal();
 
         // Pastikan ijtima sudah terjadi
-        if(ijtima <= now){
-
-            const bisaRukyat = (
-                hilal.alt >= 3 &&
-                hilal.elo >= 6.4 &&
-                hilal.age >= 8
-            );
-
-            tambahHari = bisaRukyat ? 1 : 0;
-
-            console.log("🌙 Realtime keputusan:", tambahHari);
+        // hitung waktu maghrib dalam bentuk Date
+        const maghribDate = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          Math.floor(maghrib),
+          Math.floor((maghrib % 1)*60),
+          0, 0
+        );
+        
+        // ijtima harus sebelum maghrib
+        if(ijtima <= maghribDate){
+          
+          const bisaRukyat = (
+            hilal.alt >= 3 &&
+            hilal.elo >= 6.4 &&
+            hilal.age >= 8
+          );
+          
+          tambahHari = bisaRukyat ? 1 : 0;
+          
+          console.log("🌙 Realtime keputusan:", tambahHari);
         }
     }
 
@@ -509,7 +523,7 @@ function updateHijriRealTime(lat, lon){
 // ================= REFRACTION & PARALLAX =================
 function koreksiRefraction(alt){
   if(alt > -1){
-    const R = 1.02 / Math.tan((alt + 10.3/(alt+5.11)) * rad);
+    const R = (1.02 / Math.tan((alt + 10.3/(alt+5.11)) * rad)) + 0.0019;
     return alt + (R/60);
   }
   return alt;
@@ -556,103 +570,171 @@ function getCountdownMaghrib(now, maghrib){
 function renderUI(){
   if(!currentLat || !currentLon) return;
 
+  // 🔥 CEK DATA SUDAH ADA BELUM
+  if(!hilalDataFull || hilalDataFull.age === 0){
+    document.getElementById('insight').innerHTML = "⏳ Mengambil data hilal...";
+    return;
+  }
+
   const now = new Date();
   const maghribData = hitungMaghrib(currentLat, currentLon);
   const maghrib = maghribData ? maghribData.decimal : 18;
 
-  // ✅ Insight (pakai data global)
   const insight = getHijriInsight(hilalDataFull, maghrib, now);
   document.getElementById('insight').innerHTML = insight;
 
-  // ✅ Countdown maghrib
   const countdown = getCountdownMaghrib(now, maghrib);
   document.getElementById('countdownMaghrib').innerText = countdown;
 
-  // ✅ Progress bar
-  const progress = getProgressToMaghrib(now, maghrib);
+  const progress = getProgressToMaghrib(now, currentLat, currentLon);
   document.getElementById('progressBar').style.width = progress + "%";
 }
 
-// ==== PROGRESS BAR ====
-function getProgressToMaghrib(now, maghrib) {
-    // Jam saat ini dalam format desimal
-    const jamSekarang = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
+// === PROGRESS MENUJU MAGHRIB ===
+function getProgressToMaghrib(now, lat, lon){
 
-    // Hitung progress dari maghrib hari ini menuju maghrib besok
-    let start = maghrib;             // maghrib hari ini
-    let end = maghrib + 24;          // maghrib besok
+  const todayMaghribData = hitungMaghrib(lat, lon);
+  if(!todayMaghribData) return 0;
 
-    // Jika jamSekarang < maghrib, artinya kita sudah di fase setelah tengah malam tapi sebelum maghrib hari ini
-    // Maka kita anggap progress menuju maghrib hari ini
-    let progress = ((jamSekarang - start + 24) % 24) / 24 * 100;
+  const maghribDecimal = todayMaghribData.decimal;
 
-    // Pastikan antara 0-100%
-    return Math.max(0, Math.min(100, progress));
+  const maghribToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    Math.floor(maghribDecimal),
+    Math.floor((maghribDecimal % 1)*60),
+    0, 0
+  );
+
+  let maghribPrev, maghribNext;
+
+  if(now >= maghribToday){
+    // setelah maghrib → ambil besok
+    maghribPrev = maghribToday;
+
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+
+    const nextData = hitungMaghrib(lat, lon);
+    const nextDec = nextData.decimal;
+
+    maghribNext = new Date(
+      tomorrow.getFullYear(),
+      tomorrow.getMonth(),
+      tomorrow.getDate(),
+      Math.floor(nextDec),
+      Math.floor((nextDec % 1)*60),
+      0, 0
+    );
+
+  } else {
+    // sebelum maghrib → ambil kemarin
+    maghribNext = maghribToday;
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+
+    const prevData = hitungMaghrib(lat, lon);
+    const prevDec = prevData.decimal;
+
+    maghribPrev = new Date(
+      yesterday.getFullYear(),
+      yesterday.getMonth(),
+      yesterday.getDate(),
+      Math.floor(prevDec),
+      Math.floor((prevDec % 1)*60),
+      0, 0
+    );
+  }
+
+  const total = maghribNext - maghribPrev;
+  const passed = now - maghribPrev;
+
+  let progress = (passed / total) * 100;
+
+  return Math.max(0, Math.min(100, progress));
 }
 
-// ================= HILAL =================
+// ================= HITUNG HILAL =================
 function hitungHilal(lat, lon, customTime=null){
   const statusEl = document.getElementById('status');
   const prediksiEl = document.getElementById('prediksi');
 
-  // 🔹 Status sementara saat menghitung
   statusEl.innerText = "⏳ Menghitung hilal...";
   prediksiEl.innerText = "";
 
   const data = hitungHilalCore(lat, lon, customTime);
-
   const { alt, azi, elo, age, illumination } = data;
 
-  // === PROGRESS + DATA WAKTU ===
-const now = new Date();
-const maghribData = hitungMaghrib(currentLat, currentLon);
-const maghrib = maghribData ? maghribData.decimal : 18;
-
-// === PROGRESS BAR ===
-const progress = getProgressToMaghrib(now, maghrib);
-document.getElementById('progressBar').style.width = progress + "%";
-
-// === INSIGHT ===
-const insight = getHijriInsight({ alt, azi, elo, age, illumination }, maghrib, now);
-hilalDataFull = { alt, azi, elo, age, illumination };
-
-document.getElementById('insight').innerHTML = insight;
-
-// === COUNTDOWN ===
-const countdown = getCountdownMaghrib(now, maghrib);
-document.getElementById('countdownMaghrib').innerText = countdown;
-  
+  // 🔥 SIMPAN GLOBAL
+  hilalDataFull = { alt, azi, elo, age, illumination };
   hilalData.alt = alt;
   hilalData.azi = azi;
 
+  // ================= UPDATE ANGKA =================
   document.getElementById('alt').innerText = alt.toFixed(2);
   document.getElementById('azi').innerText = azi.toFixed(2);
   document.getElementById('elo').innerText = elo.toFixed(2);
   document.getElementById('age').innerText = age.toFixed(1);
   document.getElementById('illum').innerText = illumination.toFixed(2) + " %";
 
+  // ================= 🔥 HITUNG PREDIKSI (PINDAH KE ATAS) =================
+  const yallop = hitungVisibilitasYallop(alt, elo);
+  const odeh   = hitungVisibilitasOdeh(alt, elo);
+  const score  = hitungVisibilityScore(alt, elo, age);
+
+  document.getElementById("yallop").innerText = yallop;
+  document.getElementById("odeh").innerText = odeh;
+  document.getElementById("visibility").innerText = score + "%";
+
+  // ================= STATUS IJTIMA =================
+  const now = new Date();
+  const ijtima = getIjtimaGlobal();
+  document.getElementById("statusIjtima").innerText =
+    now >= ijtima ? "✅ Sudah Ijtima" : "⏳ Belum Ijtima";
+
+  // ================= WARNA SCORE =================
+  const visEl = document.getElementById("visibility");
+  visEl.classList.remove("ok","warn","bad");
+
+  if(score > 70){
+    visEl.classList.add("ok");
+  }else if(score > 40){
+    visEl.classList.add("warn");
+  }else{
+    visEl.classList.add("bad");
+  }
+
+  // ================= LOGIKA STATUS =================
   if(alt < 0){
     statusEl.innerText = "🌑 Bulan di bawah horizon";
     prediksiEl.innerText = "Tidak mungkin rukyat";
   } else {
-    const imkan = (alt>=3 && elo>=6.4 && age>=8);
-    const q = alt - (0.1018*Math.sqrt(elo));
-    const vis = q>0.216 ? "Mudah terlihat"
-              : q>-0.014 ? "Terlihat dengan alat"
-              : "Tidak terlihat";
+    const imkan = (alt >= 2 && elo >= 5 && age >= 8);
 
     if(tanggalHijriGlobal >= 29){
       statusEl.innerText = imkan ? "✅ Imkan Rukyat" : "❌ Istikmal";
-      prediksiEl.innerText = vis;
     } else {
       statusEl.innerText = "ℹ️ Belum akhir bulan";
-      prediksiEl.innerText = vis;
     }
+  }
+
+  // ================= LOG RUKYAT =================
+  const lastLog = localStorage.getItem("lastRukyatLog");
+  const nowLog = new Date();
+  const jam = nowLog.getHours();
+
+  if(
+    jam >= 17 && jam <= 19 &&
+    (!lastLog || (Date.now() - lastLog) > 600000)
+  ){
+    simpanRukyat({ alt, elo });
+    localStorage.setItem("lastRukyatLog", Date.now());
   }
 
   return data;
 }
-
 // ================= JALUR BULAN =================
 function generateHilalPath(lat, lon){
   let path = [];
@@ -973,7 +1055,7 @@ function updateAR(alpha, beta, gamma){
     deltaAlt = Math.max(-45, Math.min(45, deltaAlt));
 
     // ================= PROYEKSI REALISTIS =================
-    const fov = 60;
+    const fov = Math.max(45, Math.min(75, width/10));
 
     let targetX = width/2 + (deltaAz / fov) * width + roll*0.3;
     let targetY = height/2 - (deltaAlt / fov) * height - pitch*0.2;
@@ -1118,4 +1200,108 @@ function showNotif(judul,pesan){
   if(Notification.permission==="granted"){
     new Notification(judul,{body:pesan,icon:"assets/icon-192.png"});
   }
+}
+
+// ================= OBSERVATORY UPGRADE =================
+// ===== YALLOP =====
+function hitungVisibilitasYallop(alt, elo){
+  const q = alt - (0.1018 * Math.sqrt(elo));
+
+  if(q > 0.216) return "A (Mudah terlihat)";
+  if(q > -0.014) return "B (Optik)";
+  if(q > -0.16) return "C (Sulit)";
+  if(q > -0.232) return "D (Sangat sulit)";
+  return "E (Tidak terlihat)";
+}
+
+// ===== ODEH =====
+function hitungVisibilitasOdeh(alt, elo){
+  const V = alt - (0.1018 * Math.sqrt(elo));
+
+  if(V >= 0.5) return "Sangat mudah";
+  if(V >= 0) return "Terlihat";
+  if(V >= -0.2) return "Optik";
+  if(V >= -0.5) return "Sulit";
+  return "Tidak mungkin";
+}
+
+// ===== ATMOSFER =====
+function koreksiAtmosfer(alt){
+  if(alt <= 0) return 0;
+  const airmass = 1 / Math.sin(alt * rad);
+  return 0.25 * airmass;
+}
+
+// ===== CUACA =====
+async function getWeather(lat, lon){
+  try{
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+    );
+    const data = await res.json();
+    return data.current_weather;
+  }catch{
+    return null;
+  }
+}
+
+// === VISIBILITY SCORE ===
+function hitungVisibilityScore(alt, elo, age){
+
+  // ❗ jika sudah jelas mustahil
+  if(alt < 0 || elo < 3){
+    return 0;
+  }
+
+  let score = 0;
+
+  const altSafe = Math.max(0, alt);
+  const eloSafe = Math.max(0, elo);
+  const ageSafe = Math.max(0, age);
+
+  score += Math.min(altSafe/10,1)*40;
+  score += Math.min(eloSafe/15,1)*30;
+  score += Math.min(ageSafe/24,1)*30;
+
+  score = Math.max(0, Math.min(100, score));
+
+  return Math.round(score);
+}
+
+// ===== LOGGING =====
+function simpanRukyat(data){
+  let logs = JSON.parse(localStorage.getItem("rukyatLogs") || "[]");
+
+  logs.push({
+    waktu: new Date().toISOString(),
+    lokasi: `${currentLat},${currentLon}`,
+    alt: data.alt,
+    elo: data.elo,
+    hasil: data.alt > 0 ? "Potensi terlihat" : "Tidak"
+  });
+
+  localStorage.setItem("rukyatLogs", JSON.stringify(logs));
+}
+
+// === UPDATE CARD PREDIKSI ===
+function updatePrediksiCard(){
+
+  const now = new Date();
+
+  const ijtimaNow = getIjtimaGlobal();
+  const ijtimaNext = getNextIjtima();
+
+  const sudahIjtima = now >= ijtimaNow;
+
+  document.getElementById("statusIjtima").innerText =
+    sudahIjtima ? "✅ Sudah Ijtima" : "⏳ Belum Ijtima";
+
+  document.getElementById("ijtimaLast").innerText =
+    formatTanggalIndonesia(ijtimaNow);
+
+  document.getElementById("ijtimaNext").innerText =
+    formatTanggalIndonesia(ijtimaNext);
+
+  document.getElementById("countdownIjtima").innerText =
+    getCountdownIjtima(now, ijtimaNext);
 }
