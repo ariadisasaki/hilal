@@ -26,11 +26,41 @@
   <!-- HEADER -->
   <div class="header">
     <h1>🌕 Hilal Checker</h1>
-    <p>Rukyat Astronomi Modern</p>
+    <p>Metode Hisab & Rukyat Modern</p>
   </div>
 
   <!-- CONTAINER -->
   <div class="container">
+
+    <!-- TOGGLE INFO HIJRI -->
+    <div class="toggle-wrapper">
+      <button id="toggleHijriBtn" onclick="toggleHijriInfo()">
+        🔽 Tampilkan Informasi
+      </button>
+    </div>
+    
+    <!-- ISI INFO -->
+    <div id="hijriInfoCard" class="info-hijri insight-hidden">
+      <b>❗ PENTING:</b><br><br>
+      Semua data yang ditampilkan dalam aplikasi ini berdasarkan kondisi real bulan berbasis lokasi pengguna yang dihitung menggunakan rumus astronomi.<br><br>
+
+      Aplikasi ini menggunakan metode <b>Imkan Rukyat</b>, yaitu:
+      awal bulan hanya ditetapkan jika <b>hilal memungkinkan untuk terlihat</b>. Penentuan awal bulan harus terpenuhi syarat Tinggi Bulan ≥ 3°, Elongasi Bulan ≥ 6.4° dan Umur Bulan ≥ 8 jam sejak terjadinya Ijtima (konjungsi) yaitu Bulan dan Matahari berada pada posisi sejajar. <b><i>(Baca penjelasan yang ada di bagian bawah aplikasi ini).</i></b><br><br>
+      
+      Dalam kalender Hijriah, hari memang dimulai saat Maghrib. 
+      Namun <b>tanggal baru tidak selalu langsung dimulai saat Maghrib</b>.<br><br>
+      
+      Jadi walaupun sudah Maghrib:<br>
+      ❌ Jika hilal belum memenuhi syarat → bulan digenapkan (Istikmal)<br>
+      ✅ Jika hilal memenuhi syarat → masuk bulan baru<br><br>
+      Hal ini sesuai dengan praktek rukyat dalam penentuan awal bulan Hijriah.
+    </div>
+
+    <!-- TOGGLE MODE HIJRI -->
+    <div class="toggle-wrapper">
+      <input type="checkbox" id="hijriModeToggle" />
+      <label id="hijriModeLabel">Mode Hisab</label>
+    </div>
 
     <!-- WAKTU -->
     <div class="card">
@@ -63,30 +93,6 @@
       <h3>📝 Status Hilal</h3>
       <div id="status" class="status">Memuat...</div>
       <div id="prediksi" class="status">Memuat...</div>
-    </div>
-
-    <!-- TOGGLE INFO HIJRI -->
-    <div class="toggle-wrapper">
-      <button id="toggleHijriBtn" onclick="toggleHijriInfo()">
-        🔽 Tampilkan Informasi
-      </button>
-    </div>
-    
-    <!-- ISI INFO -->
-    <div id="hijriInfoCard" class="info-hijri insight-hidden">
-      <b>❗ PENTING:</b><br><br>
-      Semua data yang ditampilkan dalam aplikasi ini berdasarkan kondisi real bulan berbasis lokasi pengguna yang dihitung menggunakan rumus astronomi.<br><br>
-
-      Aplikasi ini menggunakan metode <b>Imkan Rukyat</b>, yaitu:
-      awal bulan hanya ditetapkan jika <b>hilal memungkinkan untuk terlihat</b>. Penentuan awal bulan harus terpenuhi syarat Tinggi Bulan ≥ 3°, Elongasi Bulan ≥ 6.4° dan Umur Bulan ≥ 8 jam sejak terjadinya Ijtima (konjungsi) yaitu Bulan dan Matahari berada pada posisi sejajar. <b><i>(Baca penjelasan yang ada di bagian bawah aplikasi ini).</i></b><br><br>
-      
-      Dalam kalender Hijriah, hari memang dimulai saat Maghrib. 
-      Namun <b>tanggal baru tidak selalu langsung dimulai saat Maghrib</b>.<br><br>
-      
-      Jadi walaupun sudah Maghrib:<br>
-      ❌ Jika hilal belum memenuhi syarat → bulan digenapkan (Istikmal)<br>
-      ✅ Jika hilal memenuhi syarat → masuk bulan baru<br><br>
-      Hal ini sesuai dengan praktek rukyat dalam penentuan awal bulan Hijriah.
     </div>
 
     <!-- PREDIKSI HILAL (CARD BARU) -->
