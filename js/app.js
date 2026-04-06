@@ -3,7 +3,7 @@ console.log("FINAL ULTRA COMPLETE - HILAL CHECKER");
 
 // === GLOBAL ===
 let hijriMonthIndex = 0;
-let tanggalHijriGlobal = 0;
+let tanggalHijriGlobal = 1;
 let hilalData = { alt: 0, azi: 0 };
 let smoothX = 0;
 let smoothY = 0;
@@ -88,6 +88,11 @@ if (document.readyState === "loading") {
 
 // === UPDATE HIJRI REALTIME ===
 async function updateHijriRealTime(lat, lon) {
+  if(!tanggalHijriGlobal){
+    console.warn("Hijri belum siap, skip update...");
+    return;
+  }
+  
   if (!lat || !lon) return;
 
   let result;
@@ -196,8 +201,10 @@ function getLocation(){
         await getMagneticDeclination(lat, lon);
 
         // 🔹 Init utama
-        updateHijriRealTime(lat, lon);
-        hitungHilal(lat, lon);
+        hitungHilal(lat, lon); // hitung dulu
+        setTimeout(()=>{
+          updateHijriRealTime(lat, lon); // baru hijri
+        }, 500);
         startCam();
         autoReloadAtMaghrib(lat, lon);
         
@@ -673,6 +680,7 @@ function hitungHilal(lat, lon, customTime=null){
 
   // 🔥 SIMPAN GLOBAL
   hilalDataFull = { alt, azi, elo, age, illumination };
+  window.hilalDataFull = hilalDataFull;
   hilalData.alt = alt;
   hilalData.azi = azi;
 
