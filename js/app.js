@@ -736,7 +736,7 @@ function hitungHilal(lat, lon, customTime=null){
   // === 1. BULAN DI BAWAH UFUK ===
   if(alt < 0){
     statusEl.innerText = "🌑 Bulan di bawah horizon";
-    prediksiEl.innerText = "Tidak mungkin rukyat karena bulan belum terbenam setelah matahari";
+    prediksiEl.innerText = "Tidak mungkin rukyat karena bulan sudah di bawah ufuk";
   }
     
   // === 2. SEBELUM MAGHRIB ===
