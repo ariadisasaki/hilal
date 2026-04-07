@@ -718,17 +718,66 @@ function hitungHilal(lat, lon, customTime=null){
     visEl.classList.add("bad");
   }
 
-  // === LOGIKA STATUS ===
+  // === LOGIKA STATUS (MABIMS UPGRADE) ===
+  // 🔹 Kriteria MABIMS
+  const imkanMABIMS = (alt >= 3 && elo >= 6.4);
+  
+  // 🔹 Info tambahan (opsional)
+  const umurCukup = age >= 8;
+  
+  // 🔹 Waktu sekarang
+  const nowTime = new Date();
+  const jamNow = nowTime.getHours() + nowTime.getMinutes()/60;
+  
+  // 🔹 Maghrib
+  const maghribData = hitungMaghrib(lat, lon);
+  const maghrib = maghribData ? maghribData.decimal : 18;
+  
+  // === 1. BULAN DI BAWAH UFUK ===
   if(alt < 0){
     statusEl.innerText = "🌑 Bulan di bawah horizon";
-    prediksiEl.innerText = "Tidak mungkin rukyat";
-  } else {
-    const imkan = (alt >= 2 && elo >= 5 && age >= 8);
+    prediksiEl.innerText = "Tidak mungkin rukyat karena bulan belum terbenam setelah matahari";
+  }
+    
+  // === 2. SEBELUM MAGHRIB ===
+  else if(jamNow < maghrib){
+    statusEl.innerText = "⏳ Menunggu Maghrib";
+    prediksiEl.innerText = "Rukyat hanya dilakukan setelah matahari terbenam";
+  }
+    
+  // === 3. SUDAH MAGHRIB ===
+  else {
+    
+  // 🔸 BELUM AKHIR BULAN
+  if(tanggalHijriGlobal < 29){
+    statusEl.innerText = "ℹ️ Belum akhir bulan";
+    prediksiEl.innerText = "Rukyat biasanya dilakukan pada tanggal 29 Hijriah";
+  }
 
-    if(tanggalHijriGlobal >= 29){
-      statusEl.innerText = imkan ? "✅ Imkan Rukyat" : "❌ Istikmal";
+  // 🔸 TANGGAL 29 (KRUSIAL)
+  else if(tanggalHijriGlobal === 29){
+    
+    if(imkanMABIMS){
+      statusEl.innerText = "✅ Imkan Rukyat (MABIMS)";
+      prediksiEl.innerText =
+        "Hilal memenuhi kriteria MABIMS → berpotensi terlihat\n" +
+        `Alt: ${alt.toFixed(2)}° (≥ 3°)\n` +
+        `Elo: ${elo.toFixed(2)}° (≥ 6.4°)`;
     } else {
-      statusEl.innerText = "ℹ️ Belum akhir bulan";
+      statusEl.innerText = "❌ Istikmal";
+      prediksiEl.innerText =
+        "Hilal belum memenuhi kriteria MABIMS → bulan digenapkan 30 hari\n" +
+        `Alt: ${alt.toFixed(2)}°\n` +
+        `Elo: ${elo.toFixed(2)}°`;
+    }
+
+  }
+
+  // 🔸 TANGGAL 30
+    else {
+      statusEl.innerText = "📅 Istikmal (30 hari)";
+      prediksiEl.innerText = "Bulan otomatis berakhir (istikmal)";
+
     }
   }
 
@@ -747,6 +796,7 @@ function hitungHilal(lat, lon, customTime=null){
 
   return data;
 }
+  
 // === JALUR BULAN ===
 function generateHilalPath(lat, lon){
   let path = [];
