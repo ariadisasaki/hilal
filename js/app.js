@@ -1519,46 +1519,70 @@ function setMode(mode){
 function getHijriRukyat(lat, lon){
 
   const now = new Date();
-  const jam = now.getHours() + now.getMinutes()/60;
 
+  // 🔹 Waktu sekarang dalam jam desimal
+  const jamNow = now.getHours() + now.getMinutes()/60;
+
+  // 🔹 Maghrib lokal
   const maghribData = hitungMaghrib(lat, lon);
   const maghrib = maghribData ? maghribData.decimal : 18;
 
+  // 🔹 Default: belum tambah hari
   let tambahHari = 0;
-  
-  // 🔥 LOGIKA MAGHRIB (WAJIB ADA)
-  if(jam >= maghrib){
+
+  // === LOGIKA DASAR (TANGGAL 1–28) ===
+  if(jamNow >= maghrib){
     tambahHari = 1;
   }
-  
-  // 🔥 KHUSUS AKHIR BULAN (29+)
-  if(tanggalHijriGlobal >= 29 && jam >= maghrib){
 
-  const hilal = hitungHilalCore(lat, lon);
-  const ijtima = getIjtimaGlobal();
+  // === KHUSUS AKHIR BULAN (29+) ===
+  if(jamNow >= maghrib){
 
-  const maghribDate = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    Math.floor(maghrib),
-    Math.floor((maghrib % 1)*60),
-    0, 0
-  );
+    // 🔥 Ambil data hilal REAL-TIME (bukan global lama)
+    const hilal = hitungHilalCore(lat, lon);
 
-  if(ijtima <= maghribDate){
+    // 🔥 Waktu ijtima
+    const ijtima = getIjtimaGlobal();
 
-    const bisaRukyat = (
+    // 🔥 Maghrib hari ini (format Date)
+    const maghribDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      Math.floor(maghrib),
+      Math.floor((maghrib % 1)*60),
+      0, 0
+    );
+
+    // 🔥 Cek apakah sudah ijtima sebelum maghrib
+    const sudahIjtima = ijtima <= maghribDate;
+
+    // 🔥 Kriteria MABIMS
+    const imkanMABIMS = (
       hilal.alt >= 3 &&
       hilal.elo >= 6.4 &&
       hilal.age >= 8
     );
 
-    // ❗ override hanya kalau akhir bulan
-    tambahHari = bisaRukyat ? 1 : 0;
-  }
-}
+    // === 🔴 LOGIKA KRUSIAL ===
+    if(tanggalHijriGlobal === 29){
 
+      if(sudahIjtima && imkanMABIMS){
+        // ✅ Hilal terlihat → bulan baru
+        tambahHari = 1;
+      } else {
+        // ❌ Tidak terlihat → tetap hari 29 (menuju 30)
+        tambahHari = 0;
+      }
+
+    } else if(tanggalHijriGlobal >= 30){
+      // 🔥 Otomatis istikmal
+      tambahHari = 1;
+    }
+
+  }
+
+  // === KONVERSI JD → HIJRI ===
   const localMidnight = new Date(
     now.getFullYear(),
     now.getMonth(),
@@ -1584,9 +1608,11 @@ function getHijriRukyat(lat, lon){
   let d = l - Math.floor((709*m)/24);
   let y = 30*n + j - 30;
 
+  // 🔹 Offset manual (opsional)
   const offset = parseInt(localStorage.getItem("hijriOffset") || 0);
   d += offset;
 
+  // 🔹 Clamp aman
   if(d < 1) d = 1;
   if(d > 30) d = 30;
 
