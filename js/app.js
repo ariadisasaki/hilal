@@ -60,7 +60,7 @@ function initHijriToggle() {
       await new Promise(r => setTimeout(r, 100));
 
       // ambil data rukyat (async)
-      const result = await getHijriRukyat(currentLat, currentLon);
+      const result = getHijriRukyat(currentLat, currentLon);
 
       tanggalHijriGlobal = result.d;
       hijriMonthIndex = result.m - 1;
@@ -88,9 +88,9 @@ if (document.readyState === "loading") {
 
 // === UPDATE HIJRI REALTIME ===
 async function updateHijriRealTime(lat, lon) {
-  if(!tanggalHijriGlobal){
-    console.warn("Hijri belum siap, skip update...");
-    return;
+  if(!tanggalHijriGlobal || isNaN(tanggalHijriGlobal)){
+    console.warn("Hijri invalid, reset ke default...");
+    tanggalHijriGlobal = 1;
   }
   
   if (!lat || !lon) return;
@@ -345,20 +345,28 @@ function initSensor(){
 
 // === DEKLINASI ===
 async function getMagneticDeclination(lat, lon){
-    try {
-        const now = new Date();
-        const response = await fetch(
-            `https://www.ngdc.noaa.gov/geomag-web/calculators/calcDeclination?lat1=${lat}&lon1=${lon}&resultFormat=json&model=WMM`
-        );
-        const data = await response.json();
-        declinationGlobal = data.result[0].declination;
-        console.log("Declination global:", declinationGlobal.toFixed(2), "°");
-        return declinationGlobal;
-    } catch(e){
-        declinationGlobal = 0;
-        console.warn("Declination API gagal, pakai 0°");
-        return 0;
+
+  try {
+
+    // coba API (kalau ada key di masa depan)
+    const url = `https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination?lat1=${lat}&lon1=${lon}&resultFormat=json`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if(data?.result?.[0]?.declination !== undefined){
+      declinationGlobal = data.result[0].declination;
+      return declinationGlobal;
     }
+
+  } catch(e){
+    console.warn("API gagal, pakai offline");
+  }
+
+  // 🔥 FALLBACK OFFLINE
+  declinationGlobal = (lon - 110) * 0.05;
+
+  return declinationGlobal;
 }
 
 // === KONSTANTA ===
