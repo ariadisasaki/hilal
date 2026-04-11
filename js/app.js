@@ -20,6 +20,7 @@ let currentLat = 0;
 let currentLon = 0;
 let lastPathUpdate = 0;
 let declinationGlobal = 0;
+let arSpeed = 1;
 let hilalDataFull = {
   alt: 0,
   azi: 0,
@@ -93,7 +94,10 @@ async function updateHijriRealTime(lat, lon) {
     tanggalHijriGlobal = 1;
   }
   
-  if (!lat || !lon) return;
+  if (lat === 0 || lon === 0 || isNaN(lat) || isNaN(lon)) {
+    console.warn("Lokasi belum siap untuk Hijri");
+    return;
+  }
 
   let result;
 
@@ -124,6 +128,13 @@ window.onload = () => {
   getLocation();
   initSensor();
 
+  // === UKURAN CANVAS ===
+  const canvas = document.getElementById("marker");
+  if(canvas){
+    canvas.width = 80;
+    canvas.height = 80;
+  }
+  
   // Tombol Kalibrasi Kompas
   const calibBtn = document.getElementById("calibrateBtn");
   if(calibBtn){
@@ -148,6 +159,27 @@ window.onload = () => {
     }
   }, { once:true });
 };
+
+// === AUTO SPEED ===
+function getAutoSpeed(){
+  const now = new Date();
+
+  const jam = now.getHours() + now.getMinutes()/60;
+
+  const maghribData = hitungMaghrib(currentLat, currentLon);
+  const maghrib = maghribData ? maghribData.decimal : 18;
+
+  const selisih = Math.abs(jam - maghrib);
+
+  // 🔥 LOGIKA AUTO
+  if(selisih > 3){
+    return 1;        // normal (jauh dari maghrib)
+  } else if(selisih > 1){
+    return 60;       // agak cepat
+  } else {
+    return 3600;     // super cepat (dekat maghrib)
+  }
+}
 
 // === JAM ===
 function startClock(){
@@ -197,13 +229,13 @@ function getLocation(){
         // 🔹 Declination
         await getMagneticDeclination(lat, lon);
 
-        // 🔹 Init utama
+        // 🔹 Init Utama
         hitungHilal(lat, lon); // hitung dulu
         setTimeout(()=>{
           updateHijriRealTime(lat, lon); // baru hijri
         }, 500);
         startCam();
-        autoReloadAtMaghrib(lat, lon);
+        startMaghribWatcher(lat, lon);
         
         // === INTERVAL FINAL ===
         // 🔁 Hitung hilal (berat → tiap 10 detik)
@@ -211,10 +243,12 @@ function getLocation(){
           hitungHilal(currentLat, currentLon);
         }, 10000);
         
-        // 🔁 Update Hijriah (tiap 1 menit)
+        // 🔁 Backup Sync
         setInterval(()=>{
-          updateHijriRealTime(currentLat, currentLon);
-        }, 60000);
+          if(modeHijri){
+            updateHijriRealTime(currentLat, currentLon);
+          }
+        }, 120000);
       
         // 🔁 UI Realtime
         setInterval(()=>{
@@ -222,7 +256,12 @@ function getLocation(){
           updatePrediksiCard();
         }, 1000);
       
-        // 🔥 Insight + countdown (opsional kalau mau pisah)
+        // 🌙 AR Realtime
+        setInterval(()=>{
+          updateHilalAR();
+        }, 1000);
+      
+        // 🔥 Insight + Countdown
         setInterval(()=>{
           const now = new Date();
           
@@ -253,7 +292,7 @@ function getLocation(){
         updateHijriRealTime(lat, lon);
         hitungHilal(lat, lon);
         startCam();
-        autoReloadAtMaghrib(lat, lon);
+        startMaghribWatcher(lat, lon);
 
         // 🔁 Update hilal tiap 10 detik
         setInterval(()=>{
@@ -381,7 +420,7 @@ function getHijriInsight(data, maghrib, now){
 
   const statusWaktu = jam < maghrib ? "Sebelum Maghrib" : "Setelah Maghrib";
   
-  const ijtimaNow = getIjtimaGlobal();
+  const ijtimaNow = getLastIjtima();
   const ijtimaNext = getNextIjtima();
   
   const sudahIjtima = now >= ijtimaNow;
@@ -465,9 +504,8 @@ function formatTanggalIndonesia(date){
   return `${d} ${m} ${y} - Pkl. ${jam}:${menit}:${detik}`;
 }
 
-// === IJTIMA GLOBAL ===
-function getIjtimaGlobal(){
-
+// === IJTIMA TERAKHIR ===
+function getLastIjtima(){
   const now = new Date();
   const JD = (now.getTime()/86400000)+2440587.5;
 
@@ -483,15 +521,10 @@ function getIjtimaGlobal(){
       + 0.00000000073*T*T*T*T;
   }
 
-  let JDE = hitungIjtima(k);
-
-  if(JDE > JD){
-    k--;
-    JDE = hitungIjtima(k);
-  }
-
+  const JDE = hitungIjtima(k);
   const millis = (JDE - 2440587.5) * 86400000;
-  return new Date(millis); // ✅ UTC global moment
+
+  return new Date(millis);
 }
 
 // === IJTIMA BERIKUTNYA ===
@@ -513,7 +546,6 @@ function getNextIjtima(){
 
   let JDE = hitungIjtima(k);
 
-  // 🔥 ambil yang berikutnya
   if(JDE <= JD){
     k++;
     JDE = hitungIjtima(k);
@@ -672,6 +704,75 @@ function getProgressToMaghrib(now, lat, lon){
   return Math.max(0, Math.min(100, progress));
 }
 
+// === UPDATE HILAL AR ===
+function updateHilalAR(){
+
+  if(!currentLat || !currentLon) return;
+
+  // 🔥 AUTO SPEED
+  arSpeed = getAutoSpeed();
+
+  const now = new Date();
+  const simulatedTime = new Date(now.getTime() + (1000 * arSpeed));
+
+  const data = hitungHilalCore(currentLat, currentLon, simulatedTime);
+
+  hilalData.alt = data.alt;
+  hilalData.azi = data.azi;
+
+  hilalDataFull = data;
+}
+
+// === KECEPATAN AR ===
+function setARSpeed(speed){
+  arSpeed = speed;
+}
+
+// === BENTUK BULAN ===
+function drawMoonRealistic(illumination){
+
+  const canvas = document.getElementById("marker");
+  if(!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+
+  const size = canvas.width;
+  ctx.clearRect(0,0,size,size);
+
+  const r = size/2;
+
+  // === FULL MOON BASE ===
+  ctx.beginPath();
+  ctx.arc(r, r, r, 0, Math.PI*2);
+  ctx.fillStyle = "white";
+  ctx.fill();
+
+  // === SHADOW (UNTUK HILAL) ===
+  const phase = illumination / 100;
+
+  ctx.globalCompositeOperation = "destination-out";
+
+  ctx.beginPath();
+
+  // 🔥 ini kunci bentuk hilal
+  const offset = (1 - phase) * r * 2;
+
+  ctx.arc(r + offset - r, r, r, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.globalCompositeOperation = "source-over";
+
+  // === GLOW EFFECT ===
+  const glow = ctx.createRadialGradient(r, r, r*0.3, r, r, r);
+  glow.addColorStop(0, "rgba(255,255,255,0.9)");
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(r, r, r, 0, Math.PI*2);
+  ctx.fill();
+}
+
 // ==== HITUNG HILAL ===
 function hitungHilal(lat, lon, customTime=null){
   const statusEl = document.getElementById('status');
@@ -707,7 +808,7 @@ function hitungHilal(lat, lon, customTime=null){
 
   // === STATUS IJTIMA ===
   const now = new Date();
-  const ijtima = getIjtimaGlobal();
+  const ijtima = getLastIjtima();
   document.getElementById("statusIjtima").innerText =
     now >= ijtima ? "✅ Sudah Ijtima" : "⏳ Belum Ijtima";
 
@@ -931,7 +1032,7 @@ function hitungHilalCore(lat, lon, customTime=null){
   )*deg;
 
   // === AGE BERBASIS IJTIMA GLOBAL ===
-  const ijtima = getIjtimaGlobal();
+  const ijtima = getLastIjtima();
   const age = (now - ijtima) / 3600000; // jam
 
   // === ILUMINASI ====
@@ -1018,20 +1119,32 @@ function calibrateWithSun(){
   }, 1000);
 }
 
-// === MAGHRIB ===
+// === HITUNG MAGHRIB ===
 function hitungMaghrib(lat, lon){
+
   const now = new Date();
-  const JD = (now/86400000)+2440587.5;
+
+  // 🔥 pakai tanggal saja (fix)
+  const date = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const JD = (date.getTime()/86400000)+2440587.5;
   const T = (JD-2451545)/36525;
-  const epsilon = 23.439291 - 0.0130042*T - 1.64e-7*T*T + 5.04e-7*T*T*T;
+
+  const epsilon = 23.439291 - 0.0130042*T;
+
   const L0 = (280.46646 + 36000.76983*T)%360;
   const M = 357.52911 + 35999.05029*T;
+
   const C = (1.914602 - 0.004817*T)*Math.sin(M*rad)
           + (0.019993 - 0.000101*T)*Math.sin(2*M*rad)
           + 0.000289*Math.sin(3*M*rad);
+
   const lambda = L0 + C;
+
   const delta = Math.asin(Math.sin(epsilon*rad)*Math.sin(lambda*rad));
+
   const y = Math.tan((epsilon/2)*rad)**2;
+
   const EoT = 4 * deg * (
     y*Math.sin(2*L0*rad)
     - 2*0.0167*Math.sin(M*rad)
@@ -1039,57 +1152,90 @@ function hitungMaghrib(lat, lon){
     - 0.5*y*y*Math.sin(4*L0*rad)
     - 1.25*0.0167*0.0167*Math.sin(2*M*rad)
   );
+
   const h0 = -0.833 * rad;
-  const cosH = (Math.sin(h0) - Math.sin(lat*rad)*Math.sin(delta)) / (Math.cos(lat*rad)*Math.cos(delta));
-  if(cosH < -1 || cosH > 1) return null;
-  const H = Math.acos(cosH)*deg;
+
+  const cosH = (Math.sin(h0) - Math.sin(lat*rad)*Math.sin(delta)) /
+               (Math.cos(lat*rad)*Math.cos(delta));
+
+  let H;
+  
+  if(cosH < -1){
+    H = 180; // matahari tidak terbenam (polar case)
+  }else if(cosH > 1){
+    H = 0; // matahari tidak terbit
+  }else{
+    H = Math.acos(cosH)*deg;
+  }
+
   const timezone = -now.getTimezoneOffset()/60;
+
   const solarNoon = 12 + timezone - (lon/15) - (EoT/60);
+
   const maghrib = solarNoon + (H/15);
+
   return { decimal: maghrib };
 }
 
-// === AUTO RELOAD MAGHRIB ===
-function autoReloadAtMaghrib(lat, lon){
-  const now = new Date();
-  const todayKey = 'hilalReloadDate';
-  const lastReload = localStorage.getItem(todayKey);
-  if(lastReload === now.toDateString()) return;
+// === MAGHRIB WATCHER ===
+function startMaghribWatcher(lat, lon){
 
-  const maghribData = hitungMaghrib(lat, lon);
-  if(!maghribData) return;
+  function loop(){
 
-  const maghribDecimal = maghribData.decimal;
-  const maghribHour = Math.floor(maghribDecimal);
-  const maghribMinute = Math.floor((maghribDecimal - maghribHour)*60);
+    const now = new Date();
 
-  const maghribTime = new Date(
-    now.getFullYear(), now.getMonth(), now.getDate(),
-    maghribHour, maghribMinute, 0, 0
-  );
+    const maghribData = hitungMaghrib(lat, lon);
+    if(!maghribData) return;
 
-  let diff = maghribTime - now;
-  if(diff < 0) diff = 0;
+    const maghrib = maghribData.decimal;
+    const jamNow = now.getHours() + now.getMinutes()/60;
 
-  setTimeout(()=>{
-  localStorage.setItem(todayKey, now.toDateString());
+    const todayKey = now.toDateString();
+    const lastReload = localStorage.getItem("hilalReloadDate");
 
-  console.log("🌙 Maghrib tercapai, update Hijri");
+    console.log("⏱ Cek Maghrib:", jamNow.toFixed(2), "|", maghrib.toFixed(2));
 
-  // 🔥 PANGGIL 2x (fix delay hilal & async)
-  updateHijriRealTime(lat, lon);
+    if(jamNow >= maghrib && lastReload !== todayKey){
 
-  setTimeout(()=>{
-    updateHijriRealTime(lat, lon);
-  }, 2000);
+      console.log("🌙 MAGHRIB TRIGGERED");
 
-}, diff);
+      localStorage.setItem("hilalReloadDate", todayKey);
+
+      updateHijriRealTime(lat, lon);
+      updateHijriRealTime(lat, lon);
+
+      showNotif("Maghrib", "Tanggal Hijriah diperbarui 🌙");
+
+      if(typeof getHijriRukyat === "function"){
+        getHijriRukyat(lat, lon);
+      }
+    }
+
+    // 🔥 INTERVAL DINAMIS
+    const selisih = Math.abs(jamNow - maghrib);
+
+    let delay;
+
+    if(selisih > 2){
+      delay = 60000; // jauh → hemat
+    } else if(selisih > 1){
+      delay = 30000; // mendekat
+    } else {
+      delay = 10000; // dekat banget → cepat
+    }
+
+    setTimeout(loop, delay);
+  }
+
+  loop(); // start
 }
 
 // === AR ===
 function updateAR(alpha, beta, gamma){
     const marker = document.getElementById('marker');
     const wrapper = document.querySelector('.camera-wrapper');
+    const horizon = document.getElementById('horizonLine');
+    const label = document.getElementById("horizonLabel");
     const azEl = document.getElementById('arAzimuth');
     const altEl = document.getElementById('arAltitude');
     if(!marker || !wrapper) return;
@@ -1103,36 +1249,88 @@ function updateAR(alpha, beta, gamma){
     }
 
     // === HEADING SMOOTH ===
-    let rawHeading = alpha ?? 0;
+    let rawHeading = window.lastAlpha ?? alpha ?? 0;
     
-    // anti loncat 360°
+    // === ANTI LONCAT 360° ===
     smoothHeading += ((rawHeading - smoothHeading + 540) % 360 - 180) * kalmanFactor;
   
-    let heading = (smoothHeading + headingOffset + declinationGlobal) % 360;
+    let heading = (smoothHeading + headingOffset + declinationGlobal + 360) % 360;
   
     // === PITCH & ROLL SMOOTH ===
     smoothPitch += ((beta || 0) - smoothPitch) * 0.1;
     smoothRoll  += ((gamma || 0) - smoothRoll) * 0.1;
     
     const pitch = smoothPitch;
+    // === HORIZON LINE ===
+    const isPortrait = window.innerHeight > window.innerWidth;
+    if(horizon){
+      const fov = 60;
+      
+    let deltaAltHorizon;
+      if(isPortrait){
+        deltaAltHorizon = -(pitch - 45);
+      } else {
+        deltaAltHorizon = -pitch;
+      }
+      
+      let y = height/2 - (deltaAltHorizon / fov) * height;
+
+    // 🔥 Clamp (biar tidak hilang)
+    if(y < 0){
+      y = 5;
+    }
+    else if(y > height){
+      y = height - 5;
+    }
+
+   // === APPLY POSISI ===
+   horizon.style.top = y + "px";
+      
+   if(label){
+     label.style.top = y + "px";
+   }
+
+   // === OPACITY (luar view) ===
+   if(y <= 5 || y >= height - 5){
+     horizon.style.opacity = 0.5;
+   } else {
+     horizon.style.opacity = 1;
+   }
+
+   // === LABEL INFO ===
+   if(label){
+     if(y <= 5){
+       label.innerText = "⬆ Horizon di atas";
+     }
+    else if(y >= height - 5){
+      label.innerText = "⬇ Horizon di bawah";
+    }
+    else{
+      label.innerText = "Horizon";
+    }
+   }
+
+    // === WARNA SIANG / MALAM ===
+    const sun = hitungMatahari(currentLat, currentLon);
+      horizon.style.background = sun.alt > 0 ? "orange" : "lime";
+    }
     const roll  = smoothRoll;
 
     // === AZIMUTH (FIX BESAR) ===
     let deltaAz = ((hilalData.azi - heading + 540) % 360) - 180;
+    deltaAz = Math.max(-90, Math.min(90, deltaAz));
 
     // === ALTITUDE (FIX) ===
-    let deviceAlt = pitch;
-    let deltaAlt = hilalData.alt - deviceAlt;
-
-    // 🔹 koreksi horizon kamera
-    deltaAlt -= 1.5;
-
+    let deviceAlt = pitch * 0.9;
+    let horizonOffset = 1.5;
+    let deltaAlt = hilalData.alt - deviceAlt - horizonOffset;
+  
     // === BATAS ===
     deltaAz  = Math.max(-60, Math.min(60, deltaAz));
     deltaAlt = Math.max(-45, Math.min(45, deltaAlt));
 
     // === PROYEKSI REALISTIS ===
-    const fov = Math.max(45, Math.min(75, width/10));
+    const fov = 60;
 
     let targetX = width/2 + (deltaAz / fov) * width + roll*0.3;
     let targetY = height/2 - (deltaAlt / fov) * height - pitch*0.2;
@@ -1141,8 +1339,8 @@ function updateAR(alpha, beta, gamma){
     targetY = Math.max(40, Math.min(height-40, targetY));
 
     // ==== SMOOTHING (TETAP DIPAKAI) ===
-    smoothX += (targetX - smoothX) * 0.12;
-    smoothY += (targetY - smoothY) * 0.1;
+    smoothX += (targetX - smoothX) * 0.08;
+    smoothY += (targetY - smoothY) * 0.08;
 
     marker.style.left = smoothX + "px";
     marker.style.top  = smoothY + "px";
@@ -1196,6 +1394,9 @@ function updateAR(alpha, beta, gamma){
             wrapper.appendChild(dot);
             setTimeout(()=>dot.remove(),1500);
         });
+      
+      // 🌙 GAMBAR HILAL REAL-TIME
+      drawMoonRealistic(hilalDataFull.illumination);
     }
 }
 
@@ -1209,7 +1410,7 @@ function calibrateCompass(){
 
     if(samples.length > 20){
       let avg = samples.reduce((a,b)=>a+b)/samples.length;
-      headingOffset = (360 - avg) % 360;
+      headingOffset = (-avg + 360) % 360;
       calibrating = false;
       window.removeEventListener("deviceorientation", handler);
 
@@ -1365,7 +1566,7 @@ function updatePrediksiCard(){
 
   const now = new Date();
 
-  const ijtimaNow = getIjtimaGlobal();
+  const ijtimaNow = getLastIjtima();
   const ijtimaNext = getNextIjtima();
 
   const sudahIjtima = now >= ijtimaNow;
@@ -1466,16 +1667,26 @@ function hitungSelisihHariMaghrib(start, now, lat, lon){
 // === DAPATKAN HIJRI ====
 function getHijriAuto(lat, lon){
 
+  if(!lat || !lon){
+    return { d: 1, m: 1, y: 1447 }; // fallback aman
+  }
+
   const now = new Date();
 
   const maghribData = hitungMaghrib(lat, lon);
-  const maghrib = maghribData ? maghribData.decimal : 18;
 
-  const jam = now.getHours() + now.getMinutes()/60;
+  const maghrib = (maghribData && !isNaN(maghribData.decimal))
+    ? maghribData.decimal
+    : 18;
+
+  const jamNow = now.getHours()
+                + now.getMinutes()/60
+                + now.getSeconds()/3600;
 
   let shiftDate = new Date(now);
 
-  if(jam < maghrib){
+  // 🔥 LOGIKA INTI (fix)
+  if(jamNow < maghrib){
     shiftDate.setDate(shiftDate.getDate() - 1);
   }
 
@@ -1495,7 +1706,9 @@ function getHijriAuto(lat, lon){
     if(p.type === "year") y = parseInt(p.value);
   });
 
+  // 🔥 OFFSET USER
   const offset = parseInt(localStorage.getItem("hijriOffset") || 0);
+
   d += offset;
 
   while(d > 30){
