@@ -31,6 +31,18 @@ let hilalDataFull = {
   age: 0,
   illumination: 0
 };
+
+// === CACHE REALTIME ===
+let sunCache = {
+  alt: 0,
+  azi: 0
+};
+
+let moonCache = {
+  alt: 0,
+  azi: 0
+};
+
 // === GLOBAL ===
 let modeHijri = true; // default: Hisab
 
@@ -66,19 +78,23 @@ const STAR_CATALOG = [
 ];
 
 // === GLOBAL STATE HILAL ENGINE ===
-let ctx, canvas;
+let ctx, canvas; // canvas context global
+let sun = {
+  alt: 0,
+  azi: 0
+};
 
-// posisi benda langit global (opsional cache)
-let sun = { alt: 0, azi: 0 };
-let moon = { alt: 0, azi: 0, illuminated: 0 };
+let moon = {
+  alt: 0,
+  azi: 0,
+  illuminated: 0 // 0 - 1 (fase bulan / terang)
+};
 
-// katalog bintang
-let star_catalog = [];
+let star_catalog = []; // array bintang
 
-// threshold twilight
+// threshold waktu
 const TWILIGHT_ALT = -6;
 
-// === INIT PLANETARIUM ===
 function initPlanetarium(){
   canvas = document.getElementById("planetarium");
   ctx = canvas.getContext("2d");
@@ -259,56 +275,11 @@ function getLabelColor(alpha = 1) {
 }
 
 // === TULIS LABEL ===
-function drawLabel(text, x, y, colorOverride = null){
-
-  const alpha = 1;
-
-  let color;
-
-  // 🌞 Siang = hitam, malam = putih
-  if(colorOverride){
-    color = colorOverride;
-  } else if(isDayTime()){
-    color = `rgba(0,0,0,${alpha})`;
-  } else if(sun.alt > TWILIGHT_ALT){
-    color = `rgba(200,200,200,${alpha})`;
-  } else {
-    color = `rgba(255,255,255,${alpha})`;
-  }
-
-  ctx.save();
-
-  // 🔥 shadow agar terbaca di background
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur = 3;
-
-  ctx.fillStyle = color;
-  ctx.font = "12px sans-serif";
+function drawLabel(text, x, y){
+  ctx.font = "12px Arial";
+  ctx.fillStyle = "white";
   ctx.textAlign = "center";
-
-  // 🔥 posisi di ATAS tengah objek
-  ctx.fillText(text, x, y - 14);
-
-  ctx.restore();
-}
-
-// === POSISI LABEL ===
-function drawLabelTopCenter(text, x, y, color, fontSize = 12, offsetY = 12){
-
-  ctx.font = `${fontSize}px Arial`;
-
-  // ukur lebar teks biar bisa center
-  const textWidth = ctx.measureText(text).width;
-
-  // posisi center horizontal
-  const tx = x - textWidth / 2;
-
-  // posisi atas objek
-  const ty = y - offsetY;
-
-  ctx.fillStyle = color;
-
-  ctx.fillText(text, tx, ty);
+  ctx.fillText(text, x, y - 8);
 }
 
 // === LANGIT KE LAYAR ===
@@ -478,7 +449,7 @@ function altAzToXY(alt, azi){
 // === BACKGROUND LANGIT ===
 function drawSkyBackground(){
 
-  let sun = hitungMatahari(currentLat, currentLon);
+  let sun = sunCache;
   let vf = getVisibilityFactor(sun.alt);
 
   let r = Math.floor(10 + (135 * (1 - vf)));
@@ -493,13 +464,13 @@ function drawSkyBackground(){
 // === GAMBAR BULAN ===
 function drawMoon(){
 
-  let moonData = hitungHilalCore(currentLat, currentLon);
+  let moonData = moonCache;
   if(!moonData || moonData.alt < -90) return;
 
   let pos = altAzToXY(moonData.alt, moonData.azi);
   if(!pos) return;
 
-  let sun = hitungMatahari(currentLat, currentLon);
+  let sun = sunCache;
 
   // =========================
   // 🌫 VISIBILITY SYSTEM
@@ -592,7 +563,7 @@ function drawHorizon(){
 // === GAMBAR BINTANG ===
 function drawStars(){
 
-  let sun = hitungMatahari(currentLat, currentLon);
+  let sun = sunCache;
   let vf = getVisibilityFactor(sun.alt);
 
   if(vf <= 0) return;
@@ -684,7 +655,7 @@ function drawStars(){
 // === GAMBAR MATAHARI ===
 function drawSun(){
 
-  let sun = hitungMatahari(currentLat, currentLon);
+  let sun = sunCache;
   if(!sun || sun.alt < -90) return;
 
   let pos = altAzToXY(sun.alt, sun.azi);
@@ -792,19 +763,22 @@ function loopPlanetarium(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   if(currentLat && currentLon){
-    hilalDataFull = hitungHilalCore(currentLat, currentLon);
+
+    // 🔥 HITUNG SEKALI SAJA DI SINI
+    sunCache = hitungMatahari(currentLat, currentLon);
+    moonCache = hitungHilalCore(currentLat, currentLon);
+
+    // optional (biar tetap kompatibel)
+    sun = sunCache;
+    moon = moonCache;
   }
 
   drawSkyBackground();
   drawGrid();
   drawHorizon();
-
   drawStars();
   drawSun();
-
-  if(hilalDataFull){
-    drawMoon();
-  }
+  drawMoon();
 
   loopId = requestAnimationFrame(loopPlanetarium);
 }
