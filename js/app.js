@@ -824,16 +824,21 @@ function drawStars(){
 }
 
 // === GAMBAR PLANET ===
+// === GAMBAR PLANET ===
 function drawPlanets(){
 
   const now = new Date();
 
+  let sun = sunCache;
+  let vf = getVisibilityFactor(sun.alt);
+
+  if(vf <= 0) return;
+
   PLANETS.forEach(planet => {
 
-    // 🔭 ambil posisi planet
+    // 🔭 posisi planet
     const eq = getPlanetPosition(planet.name, now);
 
-    // 🌍 konversi ke AltAz
     const coord = raDecToAltAz(
       eq.ra,
       eq.dec,
@@ -848,10 +853,9 @@ function drawPlanets(){
     if(!pos) return;
 
     // =========================
-    // 🪐 DRAW PLANET
+    // 🪐 VISIBILITY SYSTEM (SAMAKAN DENGAN STAR)
     // =========================
 
-    ctx.beginPath();
     const sizeMap = {
       "Merkurius": 3,
       "Venus": 5,
@@ -859,23 +863,62 @@ function drawPlanets(){
       "Jupiter": 6,
       "Saturnus": 5
     };
+
+    let baseBrightness = 1;
+
+    // 🌫 fading utama (ikut langit)
+    let alpha = vf * baseBrightness;
+
+    // 🌙 tambahan atmosfer seperti bintang
+    if(sun.alt > 0){
+      alpha *= 0;        // siang → hilang total
+    } 
+    else if(sun.alt > -6){
+      alpha *= 0.25;     // senja → redup
+    }
+
+    // =========================
+    // 🪐 DRAW PLANET
+    // =========================
+
+    ctx.beginPath();
     ctx.arc(pos.x, pos.y, sizeMap[planet.name], 0, Math.PI * 2);
-    ctx.fillStyle = planet.color;
+
+    ctx.fillStyle = `${planet.color.replace("rgb", "rgba").replace(")", `,${alpha})`)}`;
     ctx.fill();
 
-    // glow ringan
+    // glow
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
-    ctx.fillStyle = planet.color + "33";
+    ctx.fillStyle = `${planet.color.replace("rgb", "rgba").replace(")", `,${alpha * 0.3})`)}`;
     ctx.fill();
 
     // =========================
-    // 🏷 LABEL (CENTER ATAS)
+    // 🏷 LABEL SYSTEM (SAMAKAN LOGIKA STAR)
     // =========================
 
-    const labelColor = getLabelColor(0.9);
+    if(alpha > 0.15){
 
-    drawLabel(planet.name, pos.x, pos.y, labelColor);
+      let labelColor;
+
+      if(sun.alt > 0){
+        labelColor = `rgba(0,0,0,${alpha})`;
+      } 
+      else if(sun.alt > -6){
+        labelColor = `rgba(200,200,200,${alpha})`;
+      } 
+      else {
+        labelColor = `rgba(255,255,255,${alpha})`;
+      }
+
+      ctx.shadowBlur = (sun.alt <= 0) ? 3 : 0;
+      ctx.shadowColor = (sun.alt <= 0) ? "rgba(0,0,0,0.5)" : "transparent";
+
+      drawLabel(planet.name, pos.x, pos.y, labelColor);
+
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+    }
 
   });
 }
