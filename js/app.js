@@ -164,7 +164,7 @@ if (document.readyState === "loading") {
 }
 
 // === UPDATE HIJRI REALTIME ===
-async function updateHijriRealTime(lat, lon) {
+function updateHijriRealTime(lat, lon){
 
   resetHybridDaily();
 
@@ -172,19 +172,18 @@ async function updateHijriRealTime(lat, lon) {
     tanggalHijriGlobal = 1;
   }
 
-  if (lat === 0 || lon === 0 || isNaN(lat) || isNaN(lon)) {
-    console.warn("Lokasi belum siap untuk Hijri");
-    return;
+  if (!lat || !lon || isNaN(lat) || isNaN(lon)) {
+    console.warn("Pakai fallback lokasi");
+    lat = -8.6522;
+    lon = 116.5293;
   }
 
   let result;
 
   if (modeHijri) {
-    // ✅ HISAB
     result = getHijriAuto(lat, lon);
-
   } else {
-    // ✅ HYBRID
+
     if(isMaghribTime(lat, lon) && !sudahCekHariIni){
 
       result = getHijriHybrid(lat, lon);
@@ -199,13 +198,13 @@ async function updateHijriRealTime(lat, lon) {
       if(cache){
         result = JSON.parse(cache);
       } else {
-        console.warn("Hybrid belum punya cache");
-        return;
+        console.warn("Hybrid belum punya cache → fallback HISAB");
+        result = getHijriAuto(lat, lon);
       }
+
     }
   }
 
-  // 🔥 WAJIB: di luar if-else
   if(!result){
     console.warn("Result Hijri kosong");
     return;
@@ -222,18 +221,25 @@ async function updateHijriRealTime(lat, lon) {
   tanggalHijriGlobal = d;
   hijriMonthIndex = m - 1;
 
-  document.getElementById('hijri').innerText =
-    `${d} ${bulan[hijriMonthIndex]} ${y} H`;
+  const el = document.getElementById('hijri');
+  const textBaru = `${d} ${bulan[hijriMonthIndex]} ${y} H`;
+
+  if(el && el.innerText !== textBaru){
+    el.innerText = textBaru;
+  }
 
   console.log("✅ Hijri updated:", d, m, y);
 }
   
 // === INIT ===
 window.onload = () => {
+  preloadHijri();
   startClock();
+  initPlanetarium();
+  updateHijriRealTime(-8.6522, 116.5293); // fallback Lombok
   getLocation();
   initSensor();
-  initPlanetarium();
+  
 
   // === UKURAN CANVAS ===
   const canvas = document.getElementById("marker");
@@ -847,9 +853,6 @@ function getLocation(){
 
         // 🔹 Init Utama
         hitungHilal(lat, lon); // hitung dulu
-        setTimeout(()=>{
-          updateHijriRealTime(lat, lon); // baru hijri
-        }, 500);
         startMaghribWatcher(lat, lon);
         
         // === INTERVAL FINAL ===
@@ -861,7 +864,7 @@ function getLocation(){
         // 🔁 Backup Sync
         setInterval(()=>{
           updateHijriRealTime(currentLat, currentLon);
-        }, 120000);
+        }, 5000);
       
         // 🔁 UI Realtime
         setInterval(()=>{
@@ -1228,12 +1231,19 @@ function getCountdownMaghrib(now, maghrib){
 
 // === RENDER UI ====
 function renderUI(){
-  if(!currentLat || !currentLon) return;
+  let lat = currentLat || -8.6522;
+  let lon = currentLon || 116.5293;
 
   // 🔥 CEK DATA SUDAH ADA BELUM
   if(!hilalDataFull || hilalDataFull.age === 0){
     document.getElementById('insight').innerHTML = "⏳ Mengambil data hilal...";
-    return;
+  } else {
+    const now = new Date();
+    const maghribData = hitungMaghrib(currentLat, currentLon);
+    const maghrib = maghribData ? maghribData.decimal : 18;
+    
+    const insight = getHijriInsight(hilalDataFull, maghrib, now);
+    document.getElementById('insight').innerHTML = insight;
   }
 
   const now = new Date();
@@ -1248,6 +1258,30 @@ function renderUI(){
 
   const progress = getProgressToMaghrib(now, currentLat, currentLon);
   document.getElementById('progressBar').style.width = progress + "%";
+}
+
+// === PRELOAD HIJRI ===
+function preloadHijri(){
+
+  const cache = localStorage.getItem("hybridCache");
+
+  if(cache){
+    const result = JSON.parse(cache);
+
+    const bulan = [
+      "Muharram","Safar","Rabiul Awal","Rabiul Akhir",
+      "Jumadil Awal","Jumadil Akhir","Rajab","Syaban",
+      "Ramadhan","Syawal","Zulkaidah","Zulhijjah"
+    ];
+
+    const el = document.getElementById('hijri');
+
+    if(el){
+      el.innerText = `${result.d} ${bulan[result.m-1]} ${result.y} H`;
+    }
+
+    console.log("⚡ Hijri preload dari cache");
+  }
 }
 
 // === PROGRESS MENUJU MAGHRIB ===
