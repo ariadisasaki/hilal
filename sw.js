@@ -1,6 +1,6 @@
 const CACHE_NAME = "hilal-v1.1.6";
 
-const BASE_PATH = "/debug/";
+const BASE_PATH = "/";
 
 const ASSETS = [
   BASE_PATH,
