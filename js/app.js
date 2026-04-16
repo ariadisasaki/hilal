@@ -40,31 +40,30 @@ document.addEventListener("DOMContentLoaded", () => {
   let deferredPrompt = null;
   const installBtn = document.getElementById("installBtn");
 
-  // kalau tombol tidak ada → stop (biar aman)
   if (!installBtn) return;
 
   // === SEBELUM INSTALL ===
   window.addEventListener("beforeinstallprompt", (e) => {
-  console.log("🔥 beforeinstallprompt TERPANGGIL");
-  
-  e.preventDefault();
-  deferredPrompt = e;
+    console.log("🔥 beforeinstallprompt TERPANGGIL");
 
-  installBtn.style.display = "block";
-});
+    e.preventDefault();
+    deferredPrompt = e;
+
+    installBtn.style.display = "block";
+  });
 
   // === TOMBOL INSTALL ===
   installBtn.addEventListener("click", async () => {
 
     if (!deferredPrompt) return;
 
+    // ⛔ HAPUS notif di sini (biar tidak double)
     deferredPrompt.prompt();
 
     const choice = await deferredPrompt.userChoice;
 
     if (choice.outcome === "accepted") {
       console.log("User menerima install");
-      showInstallNotification("Aplikasi sedang diinstall...");
     } else {
       console.log("User menolak install");
     }
@@ -75,24 +74,25 @@ document.addEventListener("DOMContentLoaded", () => {
   // === NOTIFIKASI INSTALL ===
   function showInstallNotification(msg){
 
-  if ("serviceWorker" in navigator){
-
-    navigator.serviceWorker.ready.then(reg => {
-      reg.showNotification("PWA Installer", {
-        body: msg,
-        icon: "/debug/assets/icon-192.png"
+    if ("serviceWorker" in navigator){
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification("PWA Installer", {
+          body: msg,
+          icon: "/assets/icon-192.png"
+        });
       });
-    });
-  
-  } else {
-    alert(msg);
-  }
+    } else {
+      alert(msg);
+    }
   }
 
   // === SUDAH DIINSTALL ===
   window.addEventListener("appinstalled", () => {
     console.log("PWA sudah diinstall");
+
     installBtn.style.display = "none";
+
+    // 🔥 HANYA DI SINI NOTIF MUNCUL
     showInstallNotification("Aplikasi berhasil diinstall!");
   });
 
