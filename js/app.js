@@ -318,6 +318,7 @@ window.onload = () => {
   startClock();
   initPlanetarium();
   generateGalaxy();
+  generateClouds();
   updateHijriRealTime(-8.6522, 116.5293);
   getLocation();
   initSensor();
@@ -1160,6 +1161,7 @@ function loopPlanetarium(){
   drawHorizon();
   drawStars();
   drawGalaxy();
+  drawClouds();
   drawPlanets();
   drawSun();
   drawMoon();
