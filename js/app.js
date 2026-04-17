@@ -361,7 +361,6 @@ window.onload = () => {
   getLocation();
   initSensor();
   
-
   // === UKURAN CANVAS ===
   const canvas = document.getElementById("marker");
   if(canvas){
@@ -1478,18 +1477,9 @@ Menunjukkan fase bulan (semakin besar → semakin terang).
 
 🌙 <b>Umur Bulan:</b> ${age.toFixed(1)} jam (~${(age/24).toFixed(2)} hari astronomi)<br><br>
 
-<b>Penjelasan:</b><br>
-Walaupun umur bulan mencapai ${(age/24).toFixed(2)} hari,
-tanggal Hijriah tetap ${tanggalHijriGlobal} karena:<br>
-- Awal bulan ditentukan oleh rukyat/hisab<br>
-- Pergantian hari terjadi saat Maghrib<br>
-- Tidak selalu sinkron dengan umur bulan astronomi<br><br>
-
 <b>Perkiraan:</b><br>
 Sekitar ${(24 - (age % 24)).toFixed(1)} jam lagi menuju fase hari berikutnya. Perkiraan berdasarkan fase bulan, dapat berbeda dari waktu Maghrib lokal.
 <br><br>
-
-<b>📘 Penjelasan Prediksi Hilal:</b><br><br>
 
 🔭 <b>Metode Yallop</b><br>
 Digunakan secara internasional untuk menentukan apakah hilal bisa terlihat.
