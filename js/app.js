@@ -1830,17 +1830,16 @@ function hitungHilal(lat, lon, customTime=null){
   if(statusEl) statusEl.innerText = "⏳ Menghitung hilal...";
   if(prediksiEl) prediksiEl.innerText = "";
 
-  // 🌌 1. DATA ASTRONOMI (SUMBER UTAMA)
+  // 🌌 DATA ASTRONOMI
   const data = hitungHilalCore(lat, lon, customTime);
 
-  // 🔥 PAKSA NUMBER (ANTI BUG 0%)
   const alt = Number(data.alt) || 0;
   const azi = Number(data.azi) || 0;
   const elo = Number(data.elo) || 0;
   const age = Number(data.age) || 0;
   const illumination = Number(data.illumination) || 0;
 
-  // === UI ANGKA DASAR ===
+  // === UI ANGKA ===
   const set = (id, val) => {
     const el = document.getElementById(id);
     if(el) el.innerText = val;
@@ -1852,36 +1851,25 @@ function hitungHilal(lat, lon, customTime=null){
   set("age", age.toFixed(1));
   set("illum", illumination.toFixed(2) + " %");
 
-  // 🌙 2. VISIBILITY MODEL
+  // 🌙 VISIBILITY
   const yallop = hitungVisibilitasYallop(alt, elo);
   const odeh = hitungVisibilitasOdeh(alt, elo);
 
   set("yallop", yallop);
   set("odeh", odeh);
 
-  // 🔥 3. VISIBILITY SCORE (FIXED SAFE)
   const score = hitungVisibilityScore(alt, elo, age);
-
   set("visibility", score + "%");
 
-  // 🧪 DEBUG (AMAN)
-  console.log("VISIBILITY DEBUG:", {
-    alt,
-    elo,
-    age,
-    score,
-    yallop,
-    odeh
-  });
+  // 🧠 DEBUG
+  console.log("VISIBILITY DEBUG:", { alt, elo, age, score, yallop, odeh });
 
-  // === IJTIMA STATUS ===
+  // === IJTIMA ===
   const now = new Date();
   const ijtima = getLastIjtima();
+  set("statusIjtima", now >= ijtima ? "Sudah Ijtima" : "Belum Ijtima");
 
-  const statusIjtima = now >= ijtima ? "Sudah Ijtima" : "Belum Ijtima";
-  set("statusIjtima", statusIjtima);
-
-  // === TIME CHECK ===
+  // === TIME ===
   const maghrib = hitungMaghrib(lat, lon)?.decimal ?? 18;
   const jamNow = now.getHours() + now.getMinutes()/60;
 
@@ -1889,41 +1877,84 @@ function hitungHilal(lat, lon, customTime=null){
   const hari = hisab.d;
 
   const imkan = (alt >= 3 && elo >= 6.4);
+  const sebelumMaghrib = jamNow < maghrib;
 
-  // 🌑 BELOW HORIZON
+  // =========================
+  // 🌑 BULAN DI BAWAH UFUK
+  // =========================
   if(alt < 0){
+
     if(statusEl) statusEl.innerText = "Bulan di bawah ufuk";
-    if(prediksiEl) prediksiEl.innerText = "Tidak bisa dirukyat";
+    if(prediksiEl) prediksiEl.innerText = "Tidak dapat dilakukan observasi hilal";
+
   }
 
-  // ⏳ BEFORE MAGHRIB
-  else if(jamNow < maghrib){
-    if(statusEl) statusEl.innerText = "Menunggu Maghrib";
-    if(prediksiEl) prediksiEl.innerText = "Rukyat setelah matahari terbenam";
-  }
-
-  // 🌙 AFTER MAGHRIB
-  else {
+  // =========================
+  // 🌅 SEBELUM MAGHRIB (EVALUASI SAJA)
+  // =========================
+  else if(sebelumMaghrib){
 
     if(hari < 29){
-      if(statusEl) statusEl.innerText = "Belum akhir bulan";
-      if(prediksiEl) prediksiEl.innerText = "Menunggu malam 29";
-    }
 
-    else if(hari === 29){
+      if(statusEl) statusEl.innerText = "Fase normal bulan berjalan";
+      if(prediksiEl) prediksiEl.innerText = "Belum memasuki fase akhir bulan";
+
+    } else if(hari === 29){
 
       if(imkan){
-        if(statusEl) statusEl.innerText = "Imkan Rukyat (MABIMS)";
-        if(prediksiEl) prediksiEl.innerText = "Hilal berpotensi terlihat";
+
+        if(statusEl) statusEl.innerText = "Fase evaluasi hilal (29 H)";
+        if(prediksiEl) prediksiEl.innerText =
+          "Hilal berpotensi terlihat saat maghrib";
+
       } else {
-        if(statusEl) statusEl.innerText = "Istikmal";
-        if(prediksiEl) prediksiEl.innerText = "Bulan digenapkan 30 hari";
+
+        if(statusEl) statusEl.innerText = "Fase evaluasi hilal (29 H)";
+        if(prediksiEl) prediksiEl.innerText =
+          "Kemungkinan besar istikmal (30 hari)";
+
       }
+
+    } else {
+
+      if(statusEl) statusEl.innerText = "Awal bulan berjalan";
+      if(prediksiEl) prediksiEl.innerText = "Siklus bulan baru telah dimulai";
+
     }
 
-    else {
-      if(statusEl) statusEl.innerText = "Hari 30 (Istikmal)";
-      if(prediksiEl) prediksiEl.innerText = "Bulan sudah diputuskan";
+  }
+
+  // =========================
+  // 🌙 SETELAH MAGHRIB (KEPUTUSAN)
+  // =========================
+  else {
+
+    if(hari === 29){
+
+      if(imkan){
+
+        if(statusEl) statusEl.innerText = "Hilal Terlihat (Imkan Rukyat)";
+        if(prediksiEl) prediksiEl.innerText =
+          "Bulan baru dimulai (1 Hijriah)";
+
+      } else {
+
+        if(statusEl) statusEl.innerText = "Istikmal";
+        if(prediksiEl) prediksiEl.innerText =
+          "Bulan digenapkan menjadi 30 hari";
+
+      }
+
+    } else if(hari < 29){
+
+      if(statusEl) statusEl.innerText = "Bulan berjalan normal";
+      if(prediksiEl) prediksiEl.innerText = "Tidak ada proses rukyat";
+
+    } else {
+
+      if(statusEl) statusEl.innerText = "Bulan baru dimulai";
+      if(prediksiEl) prediksiEl.innerText = "Keputusan sudah final";
+
     }
   }
 
