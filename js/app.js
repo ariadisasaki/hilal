@@ -1328,7 +1328,6 @@ function getLocation() {
       }, 1000);
     }
 
-    // PASTIKAN SEPERTI INI:
     setInterval(() => {
       updateHijriDisplay(); 
     }, 2000);
@@ -1557,7 +1556,7 @@ function getLastIjtima() {
     const now = new Date();
     const JD = (now.getTime() / 86400000) + 2440587.5;
     
-    // Gunakan k untuk ijtima terdekat
+    // Ijtima terdekat
     let k = Math.floor((JD - 2451550.09765) / 29.530588853);
     
     function hitung(k) {
@@ -1854,7 +1853,7 @@ function hitungHilal(lat, lon, customTime = null) {
   if (statusEl) statusEl.innerText = "⏳ Menghitung hilal...";
   if (prediksiEl) prediksiEl.innerText = "";
 
-  // 🌌 1. DATA ASTRONOMI (Input Waktu Dikunci)
+  // === DATA ASTRONOMI (MENGUNCI INPUT WAKTU) ===
   const now = customTime ? new Date(customTime) : new Date();
   const data = hitungHilalCore(lat, lon, now);
   
@@ -1875,7 +1874,7 @@ function hitungHilal(lat, lon, customTime = null) {
   set("age", age.toFixed(1));
   set("illum", illumination.toFixed(2) + " %");
 
-  // 🌙 VISIBILITY
+  // === VISIBILITY ===
   const yallop = hitungVisibilitasYallop(alt, elo);
   const odeh = hitungVisibilitasOdeh(alt, elo);
   set("yallop", yallop);
@@ -1883,7 +1882,7 @@ function hitungHilal(lat, lon, customTime = null) {
   const score = hitungVisibilityScore(alt, elo, age);
   set("visibility", score + "%");
 
-  // === TIME & CALENDAR REFERENCE ===
+  // === REFERENSI WAKTU & KALENDER ===
   const ijtima = getLastIjtima();
   set("statusIjtima", now >= ijtima ? "Sudah Ijtima" : "Belum Ijtima");
 
@@ -1891,24 +1890,24 @@ function hitungHilal(lat, lon, customTime = null) {
   const jamNow = now.getHours() + now.getMinutes() / 60;
   const sebelumMaghrib = jamNow < maghrib;
 
-  // Ambil data Hisab sebagai acuan fase
+  // === MENGAMBIL DATA HISAB SEBAGAI ACUAN FASE ===
   const hisab = getHijriAstronomical(lat, lon);
   const hari = hisab.d;
   
-  // Kriteria MABIMS (3-6.4)
+  // === KRITERIA MABIMS (3-6.4) ===
   const imkan = (alt >= 3 && elo >= 6.4);
 
   // ==========================================
   // 🌕 LOGIKA STATUS & PREDIKSI (UI DECISION)
   // ==========================================
 
-  // 🌑 KONDISI A: BULAN DI BAWAH UFUK
+  // === KONDISI A: BULAN DI BAWAH UFUK ===
   if (alt < 0) {
     if (statusEl) statusEl.innerText = "Bulan di bawah ufuk";
     if (prediksiEl) prediksiEl.innerText = "Tidak dapat dilakukan observasi hilal";
   } 
   
-  // 🌅 KONDISI B: SEBELUM MAGHRIB (EVALUASI)
+  // === KONDISI B: SEBELUM MAGHRIB (EVALUASI) ===
   else if (sebelumMaghrib) {
     // Jika masih jauh dari akhir bulan
     if (hari < 29) {
@@ -1924,7 +1923,7 @@ function hitungHilal(lat, lon, customTime = null) {
     }
   } 
   
-  // 🌙 KONDISI C: SETELAH MAGHRIB (KEPUTUSAN FINAL)
+  // === KONDISI C: SETELAH MAGHRIB (KEPUTUSAN FINAL) ===
   else {
     // Jika berada di malam pergantian (Hisab mungkin sudah tanggal 1, tapi kita cek kondisi rukyatnya)
     if (hari === 29 || hari === 30 || hari === 1) {
@@ -2056,42 +2055,42 @@ function hitungHilalCore(lat, lon, customTime=null){
     + Math.cos(latMoon*rad)*Math.sin(epsilon*rad)*Math.sin(lonMoon*rad)
   ) * deg;
 
-  // =========================
-  // 🔥 FIX IMPORTANT (USNO STABILITY)
-  // =========================
+  // ====================
+  // 🔥 STABILITAS USNO
+  // ====================
 
   const GMST = (280.46061837 + 360.98564736629*(JD - 2451545)) % 360;
 
-  // normalize LST
+  // Normalisasi LST
   const LST = (GMST + lon + 360) % 360;
 
-  // HA stable (-180..180)
+  // Stabilisasi HA (-180..180)
   const HA = ((LST - moonRA) + 540) % 360 - 180;
 
-  // === ALT ===
+  // Altitude
   let alt = Math.asin(
     Math.sin(lat*rad)*Math.sin(moonDec*rad)
     + Math.cos(lat*rad)*Math.cos(moonDec*rad)*Math.cos(HA*rad)
   ) * deg;
 
-  // === AZIMUTH (FIXED USNO STYLE) ===
+  // Azimuth USNO Style
   let azi = Math.atan2(
     Math.sin(HA*rad),
     Math.cos(HA*rad)*Math.sin(lat*rad)
     - Math.tan(moonDec*rad)*Math.cos(lat*rad)
   ) * deg;
 
-  // normalize
+  // Normalisasi
   azi = (azi + 360) % 360;
 
-  // 🔥 CONVERT KE COMPASS USNO STYLE
+  // Konversi ke Kompas
   azi = (azi + 180) % 360;
 
-  // === KOREKSI ===
+  // Koreksi
   alt = koreksiParallax(alt);
   alt = koreksiRefraction(alt);
 
-  // === ELO (SAFE CLAMP) ===
+  // Elongasi
   let cosElo =
     Math.sin(sunDec*rad)*Math.sin(moonDec*rad)
     + Math.cos(sunDec*rad)*Math.cos(moonDec*rad)
@@ -2101,16 +2100,16 @@ function hitungHilalCore(lat, lon, customTime=null){
 
   const elo = Math.acos(cosElo) * deg;
 
-  // === AGE SAFE ===
+  // Umur
   const ijtima = getLastIjtima();
   const age = ijtima ? Math.max(0, (now - ijtima) / 3600000) : 0;
 
-  // === ILLUMINATION ===
+  // Cahaya Bulan
   const illumination = (1 - Math.cos(elo * rad)) / 2 * 100;
 
-  // =========================
-  // OUTPUT SAFE
-  // =========================
+  // =======
+  // OUTPUT
+  // =======
   return {
     alt: Number(alt) || 0,
     azi: Number(azi) || 0,
@@ -2292,7 +2291,7 @@ function startMaghribWatcher(lat, lon){
   loop();
 }
 
-// === KALIBRASI HORIZOM ===
+// === KALIBRASI HORIZON ===
 function calibrateHorizon(){
   altitudeOffset = hilalData.alt + pitch;
   alert("Kalibrasi horizon berhasil");
@@ -2332,9 +2331,9 @@ function updateAR(alpha, beta, gamma){
   const pitch = smoothPitch;
   const roll  = smoothRoll;
 
-  // =========================
+  // ============
   // 🌄 HORIZON
-  // =========================
+  // ============
   if(horizon){
 
     const isPortrait = window.innerHeight > window.innerWidth;
@@ -2362,9 +2361,9 @@ function updateAR(alpha, beta, gamma){
     horizon.style.background = sun.alt > 0 ? "orange" : "lime";
   }
 
-  // =========================
+  // ==========
   // 🎯 MARKER
-  // =========================
+  // ==========
   let deltaAz = ((hilalData.azi - heading + 540) % 360) - 180;
   let deviceAlt = -pitch; // kunci utama
   let deltaAlt = hilalData.alt - deviceAlt;
@@ -2384,14 +2383,14 @@ function updateAR(alpha, beta, gamma){
   marker.style.left = smoothX + "px";
   marker.style.top  = smoothY + "px";
 
-  // =========================
-  // 🌌 GRID (INI YANG BARU)
-  // =========================
+  // ========
+  // 🌌 GRID
+  // ========
   drawSkyGrid(pitch, heading);
 
-  // =========================
+  // ============
   // 🎨 FEEDBACK
-  // =========================
+  // ============
   const error = Math.sqrt(deltaAz*deltaAz + deltaAlt*deltaAlt);
 
   if(error < 5){
@@ -2441,14 +2440,14 @@ function playBeep(freq=800, duration=100){
   osc.stop(audioCtx.currentTime + duration/1000);
 }
 
-// === NOTIF ===
+// === NOTIFIKASI ===
 function showNotif(judul,pesan){
   if(Notification.permission==="granted"){
     new Notification(judul,{body:pesan,icon:"assets/icon-192.png"});
   }
 }
 
-// === OBSERVATORY UPGRADE ===
+// === OBSERVASI ===
 // ==== YALLOP ====
 function hitungVisibilitasYallop(alt, elo){
   const q = alt - (0.1018 * Math.sqrt(elo));
@@ -2460,7 +2459,7 @@ function hitungVisibilitasYallop(alt, elo){
   return "E (Tidak terlihat)";
 }
 
-// ===== ODEH =====
+// === ODEH ===
 function hitungVisibilitasOdeh(alt, elo){
   const V = alt - (0.1018 * Math.sqrt(elo));
 
@@ -2471,14 +2470,14 @@ function hitungVisibilitasOdeh(alt, elo){
   return "Tidak mungkin";
 }
 
-// ==== ATMOSFER ====
+// === ATMOSFER ===
 function koreksiAtmosfer(alt){
   if(alt <= 0) return 0;
   const airmass = 1 / Math.sin(alt * rad);
   return 0.25 * airmass;
 }
 
-// ==== CUACA ====
+// === CUACA ===
 async function getWeather(lat, lon){
   try{
     const res = await fetch(
@@ -2512,7 +2511,7 @@ function hitungVisibilityScore(alt, elo, age){
   return Math.round(Math.max(0, Math.min(100, score)));
 }
 
-// ==== LOGGING ====
+// === LOGGING ===
 function simpanRukyat(data){
   let logs = JSON.parse(localStorage.getItem("rukyatLogs") || "[]");
 
@@ -2527,7 +2526,7 @@ function simpanRukyat(data){
   localStorage.setItem("rukyatLogs", JSON.stringify(logs));
 }
 
-// === UPDATE CARD PREDIKSI ===
+// === UPDATE PREDIKSI ===
 function updatePrediksiCard(){
 
   const now = new Date();
@@ -2668,18 +2667,16 @@ function getHijriAstronomical(lat, lon) {
     const now = new Date();
     const ijtima = getLastIjtima();
     
-    // Bandingkan tanggal murni (00:00)
+    // Membandingkan tanggal murni (00:00)
     const tglSekarang = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tglIjtima = new Date(ijtima.getFullYear(), ijtima.getMonth(), ijtima.getDate());
     
-    // Hasil hari ini (24 April - 17 April) = 7
+    // Hasil hari ini
     let diffDays = Math.round((tglSekarang - tglIjtima) / 86400000); 
 
     const maghrib = hitungMaghrib(lat, lon, now)?.decimal ?? 18;
     const jamNow = now.getHours() + now.getMinutes() / 60;
 
-    // Default: 17 April = Tanggal 1. Maka diff 7 = Tanggal 8.
-    // TAPI, karena Anda ingin hari ini tanggal 7, maka rumusnya adalah:
     let d = diffDays; 
 
     // Jika sudah Maghrib, baru naik ke tanggal berikutnya
@@ -2696,7 +2693,7 @@ function getHijriAstronomical(lat, lon) {
     return { d: Math.max(1, d), m, y };
 }
 
-// === FUNGSI KOREKSI HYBRID) ===
+// === HIJRI HYBRID ===
 let statusHilal = "-";
 function getHijriHybrid(lat, lon) {
     const hisab = getHijriAstronomical(lat, lon);
@@ -2708,7 +2705,7 @@ function getHijriHybrid(lat, lon) {
     
     const hilal = hitungHilalCore(lat, lon, tglPenentuan);
     
-    // 2. Cek Kriteria MABIMS (Tinggi >= 3 derajat DAN Elongasi >= 6.4 derajat)
+    // 2. Cek Kriteria MABIMS (Tinggi ≥ 3° dan Elongasi ≥ 6.4°)
     const imkanRukyat = (hilal.alt >= 3 && hilal.elo >= 6.4);
     
     let d = hisab.d;
@@ -2716,7 +2713,7 @@ function getHijriHybrid(lat, lon) {
     let y = hisab.y;
 
     // 3. LOGIKA OTOMATIS:
-    // Jika secara astronomis sudah masuk tanggal baru, tapi HILAL BELUM CUKUP SYARAT,
+    // Jika secara astronomis sudah masuk tanggal baru, tapi Hilal belum cukup syarat,
     // maka tanggal hybrid harus dikurangi 1 (Istikmal/penggenapan bulan).
     if (!imkanRukyat) {
         d = d - 1;
