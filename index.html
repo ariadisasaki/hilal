@@ -70,15 +70,51 @@
       <p id="lokasi">Memuat...</p>
     </div>
 
-    <!-- DATA HILAL -->
+    <div class="card">
+      <h3>☀️ Data Matahari</h3>
+      <div class="sun-grid">
+        <div class="sun-box">
+          <span class="label">Azimuth</span>
+          <span id="sun-azimuth" class="value">...</span>
+        </div>
+        <div class="sun-box">
+          <span class="label">Altitude</span>
+          <span id="sun-altitude" class="value">...</span>
+        </div>
+        <div class="sun-box">
+          <span class="label">Terbit</span>
+          <span id="sun-rise" class="value">...</span>
+        </div>
+        <div class="sun-box">
+          <span class="label">Terbenam</span>
+          <span id="sun-set" class="value">...</span>
+        </div>
+      </div>
+    </div>
+    
     <div class="card">
       <h3>🌙 Data Hilal</h3>
       <div class="data-grid">
-        <div class="data-box">Tinggi Bulan<br><span id="alt">0.00</span>°</div>
-        <div class="data-box">Azimuth Bulan<br><span id="azi">0.00</span>°</div>
-        <div class="data-box">Elongasi Bulan<br><span id="elo">0.00</span>°</div>
-        <div class="data-box">Umur Bulan<br><span id="age">0.0</span> jam</div>
-        <div class="data-box full-width">Cahaya Bulan<br><span id="illum">0.00%</span></div>
+        <div class="data-box">
+          <span class="label">Azimuth</span>
+          <span id="azi" class="value">...</span>
+        </div>
+        <div class="data-box">
+          <span class="label">Tinggi</span>
+          <span id="alt" class="value">...</span>
+        </div>
+        <div class="data-box">
+          <span class="label">Elongasi</span>
+          <span id="elo" class="value">...</span>
+        </div>
+        <div class="data-box">
+          <span class="label">Umur</span>
+          <span id="age" class="value">...</span>
+        </div>
+        <div class="data-box full">
+          <span class="label">Cahaya</span>
+          <span id="illum" class="value">...</span>
+        </div>
       </div>
     </div>
 
@@ -163,7 +199,6 @@
       <canvas id="planetarium"></canvas>
       <div id="horizonLine"></div>
       <div id="horizonLabel">UFUK 0°</div>
-      <button id="calibrateBtn">🧭 Kalibrasi Kompas</button>
     </div>
   
     <div id="menuBtn" class="menu-btn">☰</div>
