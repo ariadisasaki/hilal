@@ -1438,22 +1438,21 @@ function hitungMaghrib(lat, lon, customDate=null){
 }
 
 // ===== HIJRI INSIGHT =====
-function getHijriInsight(data, maghrib, now){
-  const { alt, azi, elo, age, illumination } = data;
+function getHijriInsight(data, maghrib, now) {
+  // 1. Ambil data dari parameter (pastikan data valid)
+  const alt = Number(data.alt) || 0;
+  const azi = Number(data.azi) || 0;
+  const elo = Number(data.elo) || 0;
+  const age = Number(data.age) || 0;
+  const illumination = Number(data.illumination) || 0;
 
-  const jam = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
-
-  const statusWaktu = jam < maghrib ? "Sebelum Maghrib" : "Setelah Maghrib";
+  // 2. Gunakan CACHED_IJTIMA (Jangan hitung ulang agar tidak lag/glitch)
+  const ijtimaNow = typeof CACHED_IJTIMA !== 'undefined' ? CACHED_IJTIMA : new Date();
   
-  const ijtimaNow = getLastIjtima();
-  const ijtimaNext = getNextIjtima();
-  
-  const sudahIjtima = now >= ijtimaNow;
-  const statusIjtima = sudahIjtima ? "✅ Sudah Ijtima" : "⏳ Belum Ijtima";
-  const countdownIjtima = getCountdownIjtima(now, ijtimaNext);
-  
-  const ijtimaStr = formatTanggalIndonesia(ijtimaNow);
-  const ijtimaNextStr = formatTanggalIndonesia(ijtimaNext);
+  // 3. Logika Penjelasan Dinamis
+  const deskripsiAlt = alt > 0 
+    ? `<span style="color:#4ade80">Bulan sudah di atas ufuk dan berpotensi terlihat.</span>` 
+    : `<span style="color:#f87171">Bulan masih di bawah ufuk sehingga tidak mungkin terlihat.</span>`;
   
   return `
 🔭 <b>Tinggi Bulan:</b> ${alt.toFixed(2)}°<br>
@@ -1862,27 +1861,45 @@ function getCountdownMaghrib(now, maghrib){
 }
 
 // === RENDER UI ====
-function renderUI(){
-  let lat = currentLat || -8.6522;
-  let lon = currentLon || 116.5293;
+function renderUI() {
+    // 1. Pastikan koordinat tersedia (Gunakan satu sumber kebenaran)
+    // Jika currentLat kosong, jangan render dulu agar tidak terjadi glitch angka lompat
+    if (!currentLat || !currentLon) {
+        document.getElementById('insight').innerHTML = "⏳ Menunggu koordinat GPS...";
+        return;
+    }
 
-  // 🔥 CEK DATA SUDAH ADA BELUM
-  if(!hilalDataFull || !hilalDataFull.age){
-    document.getElementById('insight').innerHTML = "⏳ Mengambil data hilal...";
-  } else {
+    // 2. Cek data Hilal (Sudah dihitung oleh interval utama belum?)
+    if (!hilalDataFull || typeof hilalDataFull.age === 'undefined') {
+        document.getElementById('insight').innerHTML = "⏳ Mengkalkulasi data astronomi...";
+        return;
+    }
+
     const now = new Date();
-    const maghribData = hitungMaghrib(currentLat, currentLon);
-    const maghrib = maghribData ? maghribData.decimal : 18;
-    
-    const insight = getHijriInsight(hilalDataFull, maghrib, now);
-    document.getElementById('insight').innerHTML = insight;
 
-    const countdown = getCountdownMaghrib(now, maghrib);
-    document.getElementById('countdownMaghrib').innerText = countdown;
+    try {
+        // 3. Ambil data Maghrib (Hanya panggil jika fungsinya ada)
+        const maghribData = typeof hitungMaghrib === 'function' ? hitungMaghrib(currentLat, currentLon) : { decimal: 18 };
+        const maghrib = maghribData.decimal;
 
-    const progress = getProgressToMaghrib(now, currentLat, currentLon);
-    document.getElementById('progressBar').style.width = progress + "%";
-  }
+        // 4. Update UI Insight (Kirim hilalDataFull yang sudah matang)
+        // Pastikan Anda sudah mengupdate fungsi getHijriInsight seperti saran sebelumnya
+        const insightHTML = getHijriInsight(hilalDataFull, maghrib, now);
+        const insightElement = document.getElementById('insight');
+        if (insightElement) insightElement.innerHTML = insightHTML;
+
+        // 5. Update Elemen Penunjang lainnya
+        const countdownStr = typeof getCountdownMaghrib === 'function' ? getCountdownMaghrib(now, maghrib) : "--:--";
+        const countdownElement = document.getElementById('countdownMaghrib');
+        if (countdownElement) countdownElement.innerText = countdownStr;
+
+        const progressVal = typeof getProgressToMaghrib === 'function' ? getProgressToMaghrib(now, currentLat, currentLon) : 0;
+        const progressBar = document.getElementById('progressBar');
+        if (progressBar) progressBar.style.width = progressVal + "%";
+
+    } catch (err) {
+        console.error("❌ Render UI Error:", err);
+    }
 }
 
 // === PRELOAD HIJRI ===
