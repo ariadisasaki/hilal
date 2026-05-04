@@ -1379,8 +1379,23 @@ function hitungHilal(lat, lon, customTime = null) {
       } 
       else {
         if (statusEl) statusEl.innerText = `Laporan Malam ke-${hariHisab} Hijriah`;
-        const arahBulan = azi > 180 ? "Barat/Barat Daya" : "Timur/Timur Laut";
-        if (prediksiEl) prediksiEl.innerText = `Hilal terpantau di arah ${arahBulan} dengan iluminasi ${illumination.toFixed(1)}%. Kondisi langit mendukung untuk identifikasi fase.`;
+        
+        // === KOREKSI SINKRONISASI MATA ANGIN (8 ARAH) ===
+        let arahBulan = "Utara";
+        const a = azi;
+
+        if (a >= 22.5 && a < 67.5)   arahBulan = "Timur Laut";
+        else if (a >= 67.5 && a < 112.5)  arahBulan = "Timur";
+        else if (a >= 112.5 && a < 157.5) arahBulan = "Tenggara";
+        else if (a >= 157.5 && a < 202.5) arahBulan = "Selatan";
+        else if (a >= 202.5 && a < 247.5) arahBulan = "Barat Daya";
+        else if (a >= 247.5 && a < 292.5) arahBulan = "Barat";
+        else if (a >= 292.5 && a < 337.5) arahBulan = "Barat Laut";
+        else { arahBulan = "Utara"; }
+
+        if (prediksiEl) {
+          prediksiEl.innerText = `Hilal terpantau di arah ${arahBulan} dengan iluminasi ${illumination.toFixed(1)}%. Kondisi langit mendukung untuk identifikasi fase.`;
+        }
       }
     }
 
@@ -1389,9 +1404,6 @@ function hitungHilal(lat, lon, customTime = null) {
     }
     set("statusIjtima", now >= ijtima ? "Siklus Baru Dimulai" : "Menunggu Ijtima");
 
-    // ⛔ PERBAIKAN: HAPUS BARIS INI UNTUK MENGHENTIKAN GLITCH
-    // JANGAN PERBOLEHKAN hitungHilal() menulis ke elemen 'insight'
-    
     return data;
   } catch (err) {
     console.error("Critical Render Error:", err);
