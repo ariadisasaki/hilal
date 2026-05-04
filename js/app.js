@@ -348,7 +348,7 @@ let lastRender = {
   time: 0
 };
   
-// === INIT ===
+// === WINDOW ONLOAD ===
 window.onload = () => {
   preloadHijri();
   startClock();
@@ -454,7 +454,7 @@ function drawLabel(text, x, y, color="white"){
 
   ctx.font = "12px Arial";
 
-  // 🔥 KUNCI CENTER ATAS
+  // === KUNCI CENTER ATAS ===
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
 
@@ -490,7 +490,7 @@ function drawSkyGrid(pitch, heading){
 
   const FOV = 60;
 
-  // MODE AGAR TIDAK RAMAI
+  // === MODE AGAR TIDAK RAMAI ===
   const minimal = true;
 
   let altSteps = minimal ? [0] : [-30,-15,0,15,30];
@@ -1177,7 +1177,7 @@ function startClock(){
 // ======================================
 // MANAJEMEN GPS, TIMER, & INISIALISASI
 // ======================================
-// 1. Fungsi Mengambil Koordinat dari GPS/Browser
+// 1. Ambil Koordinat dari GPS/Browser
 function getLocation() {
     navigator.geolocation.getCurrentPosition(async (p) => {
         currentLat = p.coords.latitude;
@@ -1205,7 +1205,7 @@ function getLocation() {
     }, { enableHighAccuracy: true, timeout: 15000 });
 }
 
-// 2. Fungsi Pengambilan Nama Alamat (Reverse Geocoding)
+// 2. Ambil Nama Alamat (Reverse Geocoding)
 async function updateAddress(lat, lon) {
     const locEl = document.getElementById('loc');
     const lokasiEl = document.getElementById('lokasi');
@@ -1265,7 +1265,7 @@ async function initApp(lat, lon) {
     if (debugInterval) clearInterval(debugInterval);
 
     // ============================================================
-    // TIMER 1: Komputasi Berat & Auto-Debug (Setiap 10 Detik)
+    // TIMER 1: Komputasi Berat & Auto-Debug (setiap 10 Detik)
     // ============================================================
     debugInterval = setInterval(() => {
         if (currentLat && currentLon) {
@@ -1278,7 +1278,7 @@ async function initApp(lat, lon) {
     }, 10000); 
 
     // ============================================================
-    // TIMER 2: UI & Visual (Setiap 1 Detik)
+    // TIMER 2: UI & Visual (setiap 1 Detik)
     // ============================================================
     setInterval(() => {
         if (typeof renderUI === 'function') renderUI(); 
@@ -1287,7 +1287,7 @@ async function initApp(lat, lon) {
     }, 1000);
 
     // ============================================================
-    // TIMER 3: Kalender (Setiap 2 Detik)
+    // TIMER 3: Kalender (setiap 2 Detik)
     // ============================================================
     setInterval(() => {
         if (typeof updateHijriDisplay === 'function') updateHijriDisplay();
@@ -1304,7 +1304,6 @@ async function initApp(lat, lon) {
 function hitungHilal(lat, lon, customTime = null) {
   const statusEl = document.getElementById('status');
   const prediksiEl = document.getElementById('prediksi');
-  const insightTextEl = document.getElementById('insight');
 
   try {
     const now = customTime ? new Date(customTime) : new Date();
@@ -1342,7 +1341,7 @@ function hitungHilal(lat, lon, customTime = null) {
     const sebelumMaghrib = jamNow < maghrib;
     const imkan = (alt >= 3 && elo >= 6.4);
 
-    // KOREKSI LOGIKA UFUK (Untuk Status Utama)
+    // KOREKSI LOGIKA UFUK
     const posisiUfukUtama = alt >= 0 ? "di atas ufuk" : "di bawah ufuk";
     const aksiCakrawala = alt >= 0 ? "Hilal sudah berada di atas cakrawala." : "Menunggu hilal terbit melewati garis cakrawala.";
     const tinggiTampilanUtama = alt >= 0 ? alt.toFixed(2) : Math.abs(alt).toFixed(2);
@@ -1390,26 +1389,30 @@ function hitungHilal(lat, lon, customTime = null) {
     }
     set("statusIjtima", now >= ijtima ? "Siklus Baru Dimulai" : "Menunggu Ijtima");
 
-    if (insightTextEl && typeof getHijriInsight === 'function') {
-        insightTextEl.innerHTML = getHijriInsight(data, { decimal: maghrib }, now, age);
-    }
-
+    // ⛔ PERBAIKAN: HAPUS BARIS INI UNTUK MENGHENTIKAN GLITCH
+    // JANGAN PERBOLEHKAN hitungHilal() menulis ke elemen 'insight'
+    
     return data;
   } catch (err) {
     console.error("Critical Render Error:", err);
   }
 }
 
+// === HIJRI INSIGHT ===
 function getHijriInsight(data, maghrib, now) {
-  // SINKRONISASI DATA ASLI (Mencegah Glitch Negatif)
-  const altAsli = Number(data.alt) || 0;
-  const azi = Number(data.azi) || 0;
-  const elo = Number(data.elo) || 0;
-  const age = Number(data.age) || 0;
-  const illumination = Number(data.illumination) || 0;
+  // 1. SINKRONISASI DATA ASLI (Gunakan Number secara aman)
+  const altAsli = typeof data?.alt === 'number' ? data.alt : 0;
+  const azi = typeof data?.azi === 'number' ? data.azi : 0;
+  const elo = typeof data?.elo === 'number' ? data.elo : 0;
+  const age = typeof data?.age === 'number' ? data.age : 0;
+  const illumination = typeof data?.illumination === 'number' ? data.illumination : 0;
   
-  const sun = typeof hitungMatahari === 'function' ? hitungMatahari(currentLat, currentLon) : { azi: 270, alt: 0 };
-  const jamSekarang = now.getHours() + now.getMinutes() / 60;
+  // 2. Kunci perhitungan posisi Matahari secara aman
+  const sun = typeof hitungMatahari === 'function' 
+      ? hitungMatahari(currentLat, currentLon, now) 
+      : { azi: 270, alt: 0 };
+
+  const jamSekarang = now.getHours() + (now.getMinutes() / 60) + (now.getSeconds() / 3600);
 
   let maghribDec = 18;
   if (typeof maghrib === 'number') {
@@ -1423,9 +1426,9 @@ function getHijriInsight(data, maghrib, now) {
     return sektor[Math.round(az / 45) % 8];
   };
 
-  // REVISI LOGIKA WAKTU: "terbenam" HANYA aktif saat siaga rukyat sore hari
-  const isSoreSiaga = jamSekarang >= (maghribDec - 1) && jamSekarang < (maghribDec + 1.5);
-  const isMalam = jamSekarang >= (maghribDec + 1.5) || jamSekarang < 4;
+  // 3. REVISI LOGIKA WAKTU AGAR STABIL (Tidak melompat setiap detik)
+  const isSoreSiaga = jamSekarang >= (maghribDec - 1) && jamSekarang < (maghribDec + 0.5);
+  const isMalam = jamSekarang >= (maghribDec + 0.5) || jamSekarang < 4;
 
   let teksOrientasi = "";
 
@@ -1434,7 +1437,7 @@ function getHijriInsight(data, maghrib, now) {
   } else {
     const referensiWaktu = isSoreSiaga ? "terbenam" : "saat ini";
     
-    // REVISI LOGIKA HORIZONTAL: Hitung perputaran terpendek (Kanan / Kiri)
+    // Hitung perputaran terpendek (Kanan / Kiri) secara matematis stabil
     let selisihAzi = azi - sun.azi;
     if (selisihAzi > 180) selisihAzi -= 360;
     if (selisihAzi < -180) selisihAzi += 360;
@@ -1444,10 +1447,12 @@ function getHijriInsight(data, maghrib, now) {
     teksOrientasi = `Gunakan posisi Matahari <b>${referensiWaktu}</b> di arah <b>${getArah(sun.azi)}</b> sebagai titik nol. Geser pandangan Anda ke <b>${posisiHorisontal}</b> sejauh <b>${Math.abs(selisihAzi).toFixed(1)}°</b>. Di titik itulah posisi hilal berada secara horizontal.`;
   }
 
-  // REVISI LOGIKA SINKRONISASI UFUK
+  // 4. REVISI SINKRONISASI UFUK: Angka minus (-) harus tetap ditampilkan minus agar tidak membohongi pembaca
   const posisiUfuk = altAsli >= 0 ? "di atas ufuk" : "di bawah ufuk";
   const statusCakrawala = altAsli >= 0 ? "Kondisi hilal sudah di atas cakrawala." : "Hilal masih berada di bawah garis cakrawala.";
-  const tinggiTampilan = altAsli >= 0 ? altAsli.toFixed(2) : Math.abs(altAsli).toFixed(2);
+  
+  // PERBAIKAN UTAMA: Jangan gunakan Math.abs agar nilai minus (-16°) tidak berubah menjadi positif (16°)
+  const tinggiTampilan = altAsli.toFixed(2);
 
   const formatWaktu = (decimalHour) => {
     const hours = Math.floor(decimalHour);
@@ -1726,7 +1731,7 @@ async function getMagneticDeclination(lat, lon){
 
   try {
 
-    // coba API (kalau ada key di masa depan)
+    // Ambil API
     const url = `https://www.ngdc.noaa.gov/geomag-web/calculators/calculateDeclination?lat1=${lat}&lon1=${lon}&resultFormat=json`;
 
     const res = await fetch(url);
@@ -1882,33 +1887,30 @@ function getCountdownMaghrib(now, maghrib){
 
 // === RENDER UI ====
 function renderUI() {
-    // 1. Pastikan koordinat tersedia (gunakan satu sumber kebenaran)
-    // Jika currentLat kosong, jangan render dulu agar tidak terjadi glitch angka lompat
     if (!currentLat || !currentLon) {
         document.getElementById('insight').innerHTML = "⏳ Menunggu koordinat GPS...";
         return;
     }
 
-    // 2. Cek data Hilal (sudah dihitung oleh interval utama belum?)
     if (!hilalDataFull || typeof hilalDataFull.age === 'undefined') {
         document.getElementById('insight').innerHTML = "⏳ Mengkalkulasi data astronomi...";
         return;
     }
 
+    // PERBAIKAN: Bekukan waktu detik dan milidetik ke angka 0
+    // Ini mengunci perhitungan agar desimalnya tidak terus berubah setiap detik
     const now = new Date();
+    const clampedTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 0, 0);
 
     try {
-        // 3. Ambil data Maghrib (hanya panggil jika fungsinya ada)
         const maghribData = typeof hitungMaghrib === 'function' ? hitungMaghrib(currentLat, currentLon) : { decimal: 18 };
         const maghrib = maghribData.decimal;
 
-        // 4. Update UI Insight (kirim hilalDataFull yang sudah matang)
-        // Pastikan Anda sudah mengupdate fungsi getHijriInsight seperti saran sebelumnya
-        const insightHTML = getHijriInsight(hilalDataFull, maghrib, now);
+        // Gunakan clampedTime agar teks insight benar-benar stabil
+        const insightHTML = getHijriInsight(hilalDataFull, maghrib, clampedTime);
         const insightElement = document.getElementById('insight');
         if (insightElement) insightElement.innerHTML = insightHTML;
 
-        // 5. Update Elemen Penunjang lainnya
         const countdownStr = typeof getCountdownMaghrib === 'function' ? getCountdownMaghrib(now, maghrib) : "--:--";
         const countdownElement = document.getElementById('countdownMaghrib');
         if (countdownElement) countdownElement.innerText = countdownStr;
@@ -2248,7 +2250,7 @@ function startMaghribWatcher() {
 
         // Jalankan jika sudah Maghrib dan belum diproses hari ini
         if (jamSekarangDesimal >= maghrib.decimal && lastTriggeredDate !== todayId) {
-            console.log(`%c 🌇 Maghrib Tiba: ${now.toLocaleTimeString()} `, 'background: #d35400; color: white; font-weight: bold;');
+            console.log(`%c 🌇 Maghrib telah tiba: ${now.toLocaleTimeString()} `, 'background: #d35400; color: white; font-weight: bold;');
             
             lastTriggeredDate = todayId; // Kunci agar tidak berulang
             requestHijriUpdate(); // Panggil fungsi eksekusi
@@ -2256,7 +2258,7 @@ function startMaghribWatcher() {
     }, 1000); 
 }
 
-// === MINTA UPDATE HIJRI (TANPA DUPLIKASI) ===
+// === MINTA UPDATE HIJRI ===
 function requestHijriUpdate() {
     const now = new Date();
     // Buat kunci unik berdasarkan tanggal
@@ -2443,7 +2445,7 @@ function showNotif(judul, pesan) {
             navigator.serviceWorker.ready.then(registration => {
                 registration.showNotification(judul, {
                     body: pesan,
-                    icon: "/assets/icon-192.png", // pastikan path icon benar
+                    icon: "/assets/icon-192.png",
                     badge: "/assets/icon-192.png",
                     vibrate: [200, 100, 200]
                 });
@@ -2483,14 +2485,14 @@ function hitungVisibilitasOdeh(alt, elo){
   return "Tidak mungkin";
 }
 
-// === ATMOSFER ===
+// === KOREKSI ATMOSFER ===
 function koreksiAtmosfer(alt){
   if(alt <= 0) return 0;
   const airmass = 1 / Math.sin(alt * rad);
   return 0.25 * airmass;
 }
 
-// === CUACA ===
+// === AMBIL CUACA ===
 async function getWeather(lat, lon){
   try{
     const res = await fetch(
@@ -2524,7 +2526,7 @@ function hitungVisibilityScore(alt, elo, age){
   return Math.round(Math.max(0, Math.min(100, score)));
 }
 
-// === LOGGING ===
+// === LOGGING RUKYAT ===
 function simpanRukyat(data){
   let logs = JSON.parse(localStorage.getItem("rukyatLogs") || "[]");
 
@@ -2703,7 +2705,7 @@ let statusHilal = "-";
 function getHijriHybrid(lat, lon, customDate = null) {
     const now = customDate ? new Date(customDate) : new Date();
     
-    // 1. Ambil data hisab (Sekarang sudah ringan)
+    // 1. Ambil data hisab
     const hisab = getHijriAstronomical(lat, lon, now);
     
     // 2. Gunakan Cache Ijtima
@@ -2873,6 +2875,7 @@ function logHijriAudit(data, mode) {
     }
 }
 
+// === DEBUG HILAL ===
 function debugHilal() {
     if (typeof currentLat === "undefined" || currentLat === null) {
         console.warn("⏳ [Debug] Menunggu data lokasi/GPS...");
@@ -2949,6 +2952,7 @@ function debugHilal() {
     }
 }
 
+// === CHECK AUDIT ===
 window.checkAudit = function() {
     const data = JSON.parse(localStorage.getItem("hijriAuditLogs") || "[]");
     if (data.length === 0) {
@@ -2959,6 +2963,7 @@ window.checkAudit = function() {
     }
 };
 
+// === STOP DEBUG ===
 window.stopDebug = function() {
     if (debugInterval) {
         clearInterval(debugInterval);
@@ -2966,9 +2971,7 @@ window.stopDebug = function() {
     }
 };
 
-// ===================
-// 🚀 EKSEKUSI UTAMA
-// ===================
+// === EKSEKUSI UTAMA ===
 window.addEventListener('DOMContentLoaded', () => {
     getLocation();
 });
