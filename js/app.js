@@ -391,30 +391,31 @@ window.onload = () => {
 };
 
 /**
- * FUNGSI KOREKSI PARALLAX
- * Menurunkan posisi bulan dari pusat bumi ke permukaan bumi
+ * FUNGSI 1: KOREKSI PARALLAX (Topocentric Correction)
+ * Menyesuaikan posisi bulan dari pusat bumi ke mata pengamat.
  */
 function koreksiParallax(altGeocentric) {
   const rad = Math.PI / 180;
-  // Konstanta Parallax Horizontal rata-rata Bulan
+  // 0.944 adalah nilai rata-rata pergeseran sudut akibat jarak Bumi-Bulan.
+  // Inilah yang akan memangkas selisih 0.55° - 0.60° tadi.
   const HP = 0.944; 
   const koreksi = HP * Math.cos(altGeocentric * rad);
   return altGeocentric - koreksi;
 }
 
 /**
- * FUNGSI KOREKSI REFRAKSI
- * Mengangkat posisi benda langit karena pembiasan atmosfer
+ * FUNGSI 2: KOREKSI REFRAKSI (Atmospheric Correction)
+ * Menyesuaikan pembiasan cahaya saat melewati atmosfer.
  */
 function koreksiRefraction(altTopocentric) {
   const rad = Math.PI / 180;
-  // Refraksi tidak dihitung jika benda terlalu jauh di bawah ufuk
+  // Refraksi tidak dihitung jika bulan sudah jauh di bawah ufuk.
   if (altTopocentric < -2) return altTopocentric;
 
-  // Rumus Bennett untuk menghitung pembiasan (dalam menit busur)
+  // Rumus Bennett untuk menghitung pembiasan dalam menit busur.
   const R = 1.02 / Math.tan((altTopocentric + 10.3 / (altTopocentric + 5.11)) * rad);
   
-  // Konversi dari menit busur ke derajat (1/60)
+  // Konversi dari menit busur ke derajat (1/60).
   return altTopocentric + (R / 60);
 }
 
