@@ -1349,7 +1349,7 @@ async function initApp(lat, lon) {
         if (typeof startMaghribWatcher === 'function') startMaghribWatcher(lat, lon);
     } catch (e) { console.warn("Pendukung gagal."); }
 
-    // B. Hitungan Pertama
+    // B. Hitungan Pertama (Saat aplikasi baru dibuka)
     if (typeof refreshIjtimaData === 'function' && !CACHED_IJTIMA) refreshIjtimaData();
     hilalDataFull = hitungHilal(lat, lon);
 
@@ -1357,28 +1357,27 @@ async function initApp(lat, lon) {
     if (debugInterval) clearInterval(debugInterval);
 
     // ============================================================
-    // TIMER 1: Komputasi Berat & Auto-Debug (setiap 10 Detik)
+    // TIMER 1: Monitoring & Debug (setiap 10 Detik)
     // ============================================================
     debugInterval = setInterval(() => {
         if (currentLat && currentLon) {
-            hilalDataFull = hitungHilal(currentLat, currentLon);
-            if (typeof updateSunCard === 'function') updateSunCard();
-            
-            // Tampilkan debug monitor ke Console log secara berkala
+            // REVISI: Perintah hilalDataFull dihapus dari sini karena sudah ada di Timer 2
+            // Kita biarkan ini hanya untuk fungsi log/debug saja
             debugHilal(); 
         }
     }, 10000); 
 
     // ============================================================
-    // TIMER 2: UI & Visual (setiap 1 Detik) - DIOPTIMASI
+    // TIMER 2: Jantung Utama - Update Data & UI (setiap 1 Detik)
     // ============================================================
     setInterval(() => {
       if (currentLat && currentLon) {
-        // PINDAHKAN HITUNGAN KE SINI agar data diperbarui setiap detik
+        // 1. Hitung ulang posisi benda langit setiap detik agar LIVE
         hilalDataFull = hitungHilal(currentLat, currentLon); 
         
-        if (typeof renderUI === 'function') renderUI(); 
-        if (typeof updateSunCard === 'function') updateSunCard(); // Update matahari juga per detik
+        // 2. Langsung update kartu-kartu di layar
+        if (typeof renderUI === 'function') renderUI();           // Update Data Hilal
+        if (typeof updateSunCard === 'function') updateSunCard(); // Update Data Matahari
         if (typeof updatePrediksiCard === 'function') updatePrediksiCard();
         if (typeof updateHilalAR === 'function') updateHilalAR();
       }
@@ -1391,8 +1390,8 @@ async function initApp(lat, lon) {
         if (typeof updateHijriDisplay === 'function') updateHijriDisplay();
     }, 2000);
 
-    // Eksekusi tampilan awal secara instan
-    setTimeout(() => { if (typeof updateSunCard === 'function') updateSunCard(); }, 0);
+    // Eksekusi tampilan awal secara instan tanpa menunggu interval
+    if (typeof updateSunCard === 'function') updateSunCard();
     debugHilal(); 
 }
 
