@@ -630,6 +630,65 @@ function drawSkyBackground(){
 
 }
 
+// === GAMBAR AZIMUTH ===
+function drawAzimuthGrid() {
+  if (typeof canvas === 'undefined' || typeof ctx === 'undefined') return;
+
+  const points = [
+    { label: "U", azi: 0 },
+    { label: "TL", azi: 45 },
+    { label: "T", azi: 90 },
+    { label: "TG", azi: 135 },
+    { label: "S", azi: 180 },
+    { label: "BD", azi: 225 },
+    { label: "B", azi: 270 },
+    { label: "BL", azi: 315 }
+  ];
+
+  // === LOGIKA WARNA ADAPTIF ===
+  const isDaytime = (typeof sunCache !== 'undefined' && sunCache.alt > 0);
+  const themeColor = isDaytime ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.6)";
+  const tickColor = isDaytime ? "rgba(0, 0, 0, 0.3)" : "rgba(255, 255, 255, 0.3)";
+
+  ctx.save();
+
+  points.forEach(point => {
+    const posUfuk = typeof altAzToXY === 'function' ? altAzToXY(0, point.azi) : null;
+    
+    if (posUfuk) {
+      const x = posUfuk.x;
+
+      // === BAGIAN BAWAAN (BOTTOM) ===
+      // Tick Kecil bawah
+      ctx.beginPath();
+      ctx.strokeStyle = tickColor;
+      ctx.lineWidth = 1;
+      ctx.moveTo(x, canvas.height);
+      ctx.lineTo(x, canvas.height - 5);
+      ctx.stroke();
+
+      // Label bawah (Huruf + Derajat)
+      ctx.fillStyle = themeColor;
+      ctx.textAlign = "center";
+      ctx.font = "9px sans-serif";
+      ctx.fillText(`${point.label} ${point.azi}°`, x, canvas.height - 8);
+
+      // === BAGIAN ATAS (TOP) ===
+      // Tick Kecil atas
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 5);
+      ctx.stroke();
+
+      // Label atas (Hanya Huruf)
+      ctx.textBaseline = "top";
+      ctx.fillText(point.label, x, 8);
+    }
+  });
+
+  ctx.restore();
+}
+
 // === POSISI PLANET ===
 function getPlanetPosition(name, date){
 
@@ -1134,23 +1193,27 @@ function getAutoSpeed(){
 
 // === LOOP PLANETARIUM ===
 function loopPlanetarium(){
-
   if(!running) return;
-
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if(currentLat && currentLon){
-
     // === HITUNG SEKALI SAJA DI SINI ===
     sunCache = hitungMatahari(currentLat, currentLon);
     moonCache = hitungHilalCore(currentLat, currentLon);
-
+    
     // === AGAR TETAP KOMPATIBEL ===
     sun = sunCache;
     moon = moonCache;
   }
 
-  drawSkyBackground();
+  // 1. Gambar latar langit terlebih dahulu
+  drawSkyBackground(); 
+  
+  // 2. SISIPKAN GRID MATA ANGIN DI SINI (Di belakang objek utama)
+  drawAzimuthGrid();
+
+  // 3. Lanjutkan merender elemen lainnya
   drawGrid();
   drawHorizon();
   drawStars();
@@ -1343,7 +1406,7 @@ function hitungHilal(lat, lon, customTime = null) {
 
     // KOREKSI LOGIKA UFUK
     const posisiUfukUtama = alt >= 0 ? "di atas ufuk" : "di bawah ufuk";
-    const aksiCakrawala = alt >= 0 ? "Hilal sudah berada di atas cakrawala." : "Menunggu hilal terbit melewati garis cakrawala.";
+    const aksiCakrawala = alt >= 0 ? "Hilal berada di atas cakrawala." : "Menunggu hilal terbit melewati garis cakrawala.";
     const tinggiTampilanUtama = alt >= 0 ? alt.toFixed(2) : Math.abs(alt).toFixed(2);
 
     if (alt < 0) {
@@ -1461,7 +1524,7 @@ function getHijriInsight(data, maghrib, now) {
 
   // 4. REVISI SINKRONISASI UFUK: Angka minus (-) harus tetap ditampilkan minus agar tidak membohongi pembaca
   const posisiUfuk = altAsli >= 0 ? "di atas ufuk" : "di bawah ufuk";
-  const statusCakrawala = altAsli >= 0 ? "Kondisi hilal sudah di atas cakrawala." : "Hilal masih berada di bawah garis cakrawala.";
+  const statusCakrawala = altAsli >= 0 ? "Kondisi hilal di atas cakrawala." : "Hilal berada di bawah garis cakrawala.";
   
   // PERBAIKAN UTAMA: Jangan gunakan Math.abs agar nilai minus (-16°) tidak berubah menjadi positif (16°)
   const tinggiTampilan = altAsli.toFixed(2);
