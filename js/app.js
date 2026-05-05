@@ -390,6 +390,34 @@ window.onload = () => {
   }, { once:true });
 };
 
+/**
+ * FUNGSI KOREKSI PARALLAX
+ * Menurunkan posisi bulan dari pusat bumi ke permukaan bumi
+ */
+function koreksiParallax(altGeocentric) {
+  const rad = Math.PI / 180;
+  // Konstanta Parallax Horizontal rata-rata Bulan
+  const HP = 0.944; 
+  const koreksi = HP * Math.cos(altGeocentric * rad);
+  return altGeocentric - koreksi;
+}
+
+/**
+ * FUNGSI KOREKSI REFRAKSI
+ * Mengangkat posisi benda langit karena pembiasan atmosfer
+ */
+function koreksiRefraction(altTopocentric) {
+  const rad = Math.PI / 180;
+  // Refraksi tidak dihitung jika benda terlalu jauh di bawah ufuk
+  if (altTopocentric < -2) return altTopocentric;
+
+  // Rumus Bennett untuk menghitung pembiasan (dalam menit busur)
+  const R = 1.02 / Math.tan((altTopocentric + 10.3 / (altTopocentric + 5.11)) * rad);
+  
+  // Konversi dari menit busur ke derajat (1/60)
+  return altTopocentric + (R / 60);
+}
+
 // === GENERATE GALAXY ===
 function generateGalaxy(){
 
