@@ -1473,16 +1473,23 @@ function hitungHilal(lat, lon, customTime = null) {
   }
 }
 
-// === HIJRI INSIGHT ===
+// === HIJRI INSIGHT FINAL REVISI ===
 function getHijriInsight(data, maghrib, now) {
-  // 1. SINKRONISASI DATA ASLI (Gunakan Number secara aman)
-  const altAsli = typeof data?.alt === 'number' ? data.alt : 0;
-  const azi = typeof data?.azi === 'number' ? data.azi : 0;
-  const elo = typeof data?.elo === 'number' ? data.elo : 0;
-  const age = typeof data?.age === 'number' ? data.age : 0;
-  const illumination = typeof data?.illumination === 'number' ? data.illumination : 0;
+  // 1. SINKRONISASI DATA: Ambil nilai langsung dari elemen kartu data hilal
+  const altText = document.getElementById("alt")?.innerText || "0";
+  const aziText = document.getElementById("azi")?.innerText || "0";
+  const eloText = document.getElementById("elo")?.innerText || "0";
+  const ageText = document.getElementById("age")?.innerText || "0";
+  const illumText = document.getElementById("illum")?.innerText || "0";
+
+  // Konversi ke angka untuk pemrosesan logika
+  const altAsli = parseFloat(altText);
+  const azi = parseFloat(aziText);
+  const elo = parseFloat(eloText);
+  const age = parseFloat(ageText);
+  const illumination = parseFloat(illumText);
   
-  // 2. Kunci perhitungan posisi Matahari secara aman
+  // 2. Kunci perhitungan posisi Matahari & Waktu
   const sun = typeof hitungMatahari === 'function' 
       ? hitungMatahari(currentLat, currentLon, now) 
       : { azi: 270, alt: 0 };
@@ -1501,35 +1508,42 @@ function getHijriInsight(data, maghrib, now) {
     return sektor[Math.round(az / 45) % 8];
   };
 
-  // 3. REVISI LOGIKA WAKTU AGAR STABIL (Tidak melompat setiap detik)
+  // 3. LOGIKA ORIENTASI LAPANGAN
   const isSoreSiaga = jamSekarang >= (maghribDec - 1) && jamSekarang < (maghribDec + 0.5);
   const isMalam = jamSekarang >= (maghribDec + 0.5) || jamSekarang < 4;
 
   let teksOrientasi = "";
-
-  if (isMalam) {
-    teksOrientasi = `Gunakan kompas atau alat navigasi Anda. Arahkan pandangan langsung ke arah <b>${getArah(azi)}</b> (Azimuth <b>${azi.toFixed(1)}°</b>). Di titik itulah posisi hilal berada saat ini secara horizontal.`;
+  if (isMalam || altAsli < 0) {
+    teksOrientasi = `Gunakan kompas atau alat navigasi Anda. Arahkan pandangan langsung ke arah <b>${getArah(azi)}</b> (Azimuth <b>${azi.toFixed(1)}°</b>). Di titik itulah posisi hilal berada secara horizontal.`;
   } else {
     const referensiWaktu = isSoreSiaga ? "terbenam" : "saat ini";
-    
-    // Hitung perputaran terpendek (Kanan / Kiri) secara matematis stabil
     let selisihAzi = azi - sun.azi;
     if (selisihAzi > 180) selisihAzi -= 360;
     if (selisihAzi < -180) selisihAzi += 360;
-
     const posisiHorisontal = selisihAzi >= 0 ? "sebelah kanan" : "sebelah kiri";
 
     teksOrientasi = `Gunakan posisi Matahari <b>${referensiWaktu}</b> di arah <b>${getArah(sun.azi)}</b> sebagai titik nol. Geser pandangan Anda ke <b>${posisiHorisontal}</b> sejauh <b>${Math.abs(selisihAzi).toFixed(1)}°</b>. Di titik itulah posisi hilal berada secara horizontal.`;
   }
 
-  // 4. REVISI SINKRONISASI UFUK: Angka minus (-) harus tetap ditampilkan minus agar tidak membohongi pembaca
+  // 4. POSISI TERHADAP UFUK
   const posisiUfuk = altAsli >= 0 ? "di atas ufuk" : "di bawah ufuk";
   const statusCakrawala = altAsli >= 0 ? "Kondisi hilal di atas cakrawala." : "Hilal berada di bawah garis cakrawala.";
-  
-  // PERBAIKAN UTAMA: Jangan gunakan Math.abs agar nilai minus (-16°) tidak berubah menjadi positif (16°)
-  const tinggiTampilan = altAsli.toFixed(2);
+  const tinggiTampilan = altText.replace("°", "");
 
-  const formatWaktu = (decimalHour) => {
+  // 5. REVISI LOGIKA WAKTU KRITIS (SINKRON DENGAN ALTITUDE)
+  let teksWaktuKritis = "";
+  if (altAsli < -0.5) { 
+    // Jika hilal sudah terbenam (altitude minus)
+    teksWaktuKritis = `<b style="color:#f87171">Waktu Habis:</b> Hilal sudah terbenam di bawah ufuk. Pengamatan visual tidak mungkin dilakukan lagi untuk malam ini.`;
+  } else if (jamSekarang < maghribDec) {
+    // Jika masih siang/sore sebelum maghrib
+    teksWaktuKritis = `Lakukan kalibrasi alat sekarang. Pengamatan visual dimulai saat Matahari terbenam (estimasi pukul <b>${formatWaktu(maghribDec)}</b>).`;
+  } else {
+    // Jika sudah maghrib DAN hilal masih di atas ufuk
+    teksWaktuKritis = `<b style="color:#4ade80">Waktu Emas:</b> Matahari telah terbenam. Optimalkan pencarian sekarang sebelum hilal ikut terbenam ke bawah ufuk.`;
+  }
+
+  function formatWaktu(decimalHour) {
     const hours = Math.floor(decimalHour);
     const minutes = Math.round((decimalHour - hours) * 60);
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
@@ -1540,9 +1554,9 @@ function getHijriInsight(data, maghrib, now) {
 <br><br>
 📐 <b>POSISI TEKNIS TERHADAP UFUK:</b><br>Saat ini, hilal berada pada ketinggian <b>${tinggiTampilan}° ${posisiUfuk}</b>. ${statusCakrawala} Jarak sudut pemisah (Elongasi) dari Matahari tercatat sebesar <b>${elo.toFixed(1)}°</b>.
 <br><br>
-🔆 <b>KONDISI FISIK & UMUR HILAL:</b><br>Hilal telah berusia <b>${age.toFixed(1)} jam</b> dengan ketebalan cahaya (Iluminasi) sebesar <b>${illumination.toFixed(2)}%</b>. Semakin besar angka ini, semakin mudah sabit hilal dibedakan dari cahaya latar langit senja.
+🔆 <b>KONDISI FISIK & UMUR HILAL:</b><br>Hilal telah berusia <b>${age.toFixed(1)} jam</b> dengan ketebalan cahaya (Iluminasi) sebesar <b>${illumination.toFixed(2)}%</b>.
 <br><br>
-⏱️ <b>WAKTU KRITIS PENGAMATAN:</b><br>${jamSekarang < maghribDec ? `Lakukan kalibrasi alat sekarang. Pengamatan visual dimulai saat Maghrib tiba (estimasi pukul <b>${formatWaktu(maghribDec)}</b>).` : `<b>Waktu Emas:</b> Matahari telah terbenam. Optimalkan pencarian sebelum hilal ikut terbenam ke bawah ufuk.`}
+⏱️ <b>WAKTU KRITIS PENGAMATAN:</b><br>${teksWaktuKritis}
 <br><br>
 📢 <b>HASIL ANALISIS KRITERIA (MABIMS):</b><br>Syarat Minimal: Tinggi 3° & Elongasi 6.4°<br>${(altAsli >= 3 && elo >= 6.4) ? `<b style="color:#4ade80">Lolos Kriteria: Potensi hilal terlihat (Imkan Rukyat) secara astronomis sangat besar.</b>` : `<b style="color:#f87171">Belum Lolos Kriteria: Secara teknis posisi hilal masih terlalu rendah atau terlalu dekat dengan matahari.</b>`}
 `;
