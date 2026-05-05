@@ -1370,12 +1370,18 @@ async function initApp(lat, lon) {
     }, 10000); 
 
     // ============================================================
-    // TIMER 2: UI & Visual (setiap 1 Detik)
+    // TIMER 2: UI & Visual (setiap 1 Detik) - DIOPTIMASI
     // ============================================================
     setInterval(() => {
+      if (currentLat && currentLon) {
+        // PINDAHKAN HITUNGAN KE SINI agar data diperbarui setiap detik
+        hilalDataFull = hitungHilal(currentLat, currentLon); 
+        
         if (typeof renderUI === 'function') renderUI(); 
+        if (typeof updateSunCard === 'function') updateSunCard(); // Update matahari juga per detik
         if (typeof updatePrediksiCard === 'function') updatePrediksiCard();
         if (typeof updateHilalAR === 'function') updateHilalAR();
+      }
     }, 1000);
 
     // ============================================================
