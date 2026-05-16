@@ -1405,9 +1405,9 @@ function hitungHilal(lat, lon, customTime = null) {
     try { 
         const now = customTime ? new Date(customTime) : new Date(); 
         const ijtima = (typeof CACHED_IJTIMA !== 'undefined' && CACHED_IJTIMA) ? CACHED_IJTIMA : new Date(); 
-        const dataHisab = typeof getHijriAstronomical === 'function' ? getHijriAstronomical(lat, lon) : {d:0}; 
         
-        // Tetap dihitung jika dibutuhkan di modul lain, tapi tidak dipakai di logika if-else ini
+        // Ambil data kedua mode
+        const dataHisab = typeof getHijriAstronomical === 'function' ? getHijriAstronomical(lat, lon) : {d:0}; 
         const dataHybrid = typeof getHijriHybrid === 'function' ? getHijriHybrid(lat, lon) : {d:0}; 
         
         const data = typeof hitungHilalCore === 'function' ? hitungHilalCore(lat, lon, now) : {}; 
@@ -1419,8 +1419,17 @@ function hitungHilal(lat, lon, customTime = null) {
         const illumination = Number(data.illumination) || 0; 
         const age = (now.getTime() - ijtima.getTime()) / 3600000; 
         
-        // KUNCI ACUAN PADA HARI HISAB
-        const hariAcuan = dataHisab.d || 0; 
+        const hariHisab = dataHisab.d || 0; 
+        const hariHybrid = dataHybrid.d || 0;
+
+        // =================
+        // LOGIKA KOMBINASI
+        // =================
+        let hariAcuan = hariHisab;
+
+        if (hariHisab === 29 && hariHybrid === 28) {
+            hariAcuan = hariHybrid; 
+        }
 
         const set = (id, val) => { 
             const el = document.getElementById(id); 
@@ -1467,9 +1476,8 @@ function hitungHilal(lat, lon, customTime = null) {
             } 
         } 
         
-        // 3. KONDISI MALAM HARI (SETELAH MAGHRIB - EKSEKUSI DATA RUKYAT)
+        // 3. KONDISI MALAM HARI (SETELAH MAGHRIB)
         else { 
-            // REVISI: Menggunakan hariAcuan (Hisab) agar sinkron dengan data sore hari
             if (hariAcuan === 29 || hariAcuan === 30 || hariAcuan === 1) { 
                 if (statusEl) { 
                     statusEl.innerHTML = imkan ? 
