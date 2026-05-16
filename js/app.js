@@ -2826,29 +2826,35 @@ function getHijriAstronomical(lat, lon, customDate = null) {
     let d = diffDays; 
     if (jamNow >= maghrib) d += 1; 
 
-    // === PERBAIKAN LOGIKA: KUNCI TRANSISI HARI KALENDER ===
+    // === PERBAIKAN TOTAL: KUNCI TRANSISI BERDASARKAN MENIT MAGHRIB HARI H ===
     let baseMonth = 11; // Default: Zulkaidah
     let y = 1447;
 
-    // Transisi bulan BARU AKAN AKTIF secara astronomis jika:
-    // 1. Hari masehi saat ini sudah melewati hari ijtima (Besok/Minggu dst)
-    // 2. ATAU jika hari ini adalah hari ijtima, tetapi waktu sudah MELEWATI MAGHRIB HARI BERIKUTNYA.
-    if (tglSekarang > tglIjtima) {
-        baseMonth = 12; // Maju ke Zulhijjah (Hanya berlaku hari Minggu besok dan seterusnya)
+    const sebelumMaghribHariH = jamNow < maghrib;
+
+    // Transisi bulan Zulhijjah BARU BOLEH AKTIF jika:
+    // 1. Hari ini sudah melewati hari ijtima (Hari Minggu / tanggal 17)
+    // 2. DAN waktu saat ini SUDAH MELEWATI MAGHRIB (Eksekusi hasil rukyat)
+    if (tglSekarang > tglIjtima && !sebelumMaghribHariH) {
+        baseMonth = 12; // Sah masuk Zulhijjah setelah Maghrib hari Minggu
         if (d <= 0) d = 1; 
     } else {
-        // Jika masih di hari yang sama dengan ijtima (Sabtu malam ini)
-        // Kita paksa kalender mempertahankan akhir bulan Zulkaidah
+        // Jika masih dini hari/siang hari (sebelum Maghrib hari Minggu), 
+        // atau masih di hari Sabtu, paksa tetap berada di Zulkaidah
         baseMonth = 11; 
         
-        // Perhitungan tanggal mundur dari hari H-29/30
+        // Perhitungan tanggal mundur untuk akhir bulan lama
         if (d <= 0) {
             d = 30 + d; 
         }
         
-        // Pengaman ekstra: Jika setelah maghrib di hari sabtu malam ini, 
-        // pastikan tanggal berada di batas akhir bulan lama (30 Zulkaidah)
-        if (jamNow >= maghrib && d < 29) {
+        // Jika hari ini sudah tanggal 17 Mei (diffDays == 1) tapi BELUM Maghrib,
+        // strukturnya harus mengunci angka tanggal ke batas akhir Zulkaidah
+        if (tglSekarang.getTime() === tglIjtima.getTime() + 86400000 && sebelumMaghribHariH) {
+            // Hari Minggu pagi/siang ini adalah 30 Zulkaidah (Hisab)
+            d = 30; 
+        } else if (tglSekarang.getTime() === tglIjtima.getTime() && jamNow >= maghrib) {
+            // Sabtu malam kemarin setelah maghrib juga 30 Zulkaidah
             d = 30;
         }
     }
