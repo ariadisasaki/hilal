@@ -2826,39 +2826,43 @@ function getHijriAstronomical(lat, lon, customDate = null) {
     let d = diffDays; 
     if (jamNow >= maghrib) d += 1; 
 
-    // === PERBAIKAN TOTAL: KUNCI TRANSISI BERDASARKAN MENIT MAGHRIB HARI H ===
-    let baseMonth = 11; // Default: Zulkaidah
-    let y = 1447;
+    // === 1. HITUNG BULAN & TAHUN SECARA DINAMIS (ANTI HARDCODE) ===
+    const ageTotal = (now.getTime() - ijtima.getTime()) / 86400000;
+    const cycle = Math.floor(ageTotal / 29.530588853);
+    
+    // Rumus astronomis asli bawaan kode Anda untuk menentukan bulan berjalan saat ijtima
+    let bulanIjtima = ((11 - 1 + cycle) % 12) + 1;
+    let tahunIjtima = 1447 + Math.floor((11 - 1 + cycle) / 12);
+
+    let baseMonth = bulanIjtima; 
+    let y = tahunIjtima;
 
     const sebelumMaghribHariH = jamNow < maghrib;
 
-    // Transisi bulan Zulhijjah BARU BOLEH AKTIF jika:
-    // 1. Hari ini sudah melewati hari ijtima (Hari Minggu / tanggal 17)
-    // 2. DAN waktu saat ini SUDAH MELEWATI MAGHRIB (Eksekusi hasil rukyat)
+    // === 2. LOGIKA KUNCI TRANSISI UNIVERSAL (BERLAKU UNTUK SEMUA BULAN) ===
     if (tglSekarang > tglIjtima && !sebelumMaghribHariH) {
-        baseMonth = 12; // Sah masuk Zulhijjah setelah Maghrib hari Minggu
+        // Jika sudah melewati Maghrib di Hari H Rukyat (Minggu sore), 
+        // Maka bulan resmi maju ke bulan baru berikutnya (+1)
+        baseMonth = bulanIjtima + 1; 
         if (d <= 0) d = 1; 
     } else {
-        // Jika masih dini hari/siang hari (sebelum Maghrib hari Minggu), 
-        // atau masih di hari Sabtu, paksa tetap berada di Zulkaidah
-        baseMonth = 11; 
+        // Jika masih dini hari/siang hari sebelum Maghrib di Hari H Rukyat,
+        // Paksa sistem tetap berada di bulan berjalan (bulan sebelum ijtima)
+        baseMonth = bulanIjtima; 
         
-        // Perhitungan tanggal mundur untuk akhir bulan lama
         if (d <= 0) {
             d = 30 + d; 
         }
         
-        // Jika hari ini sudah tanggal 17 Mei (diffDays == 1) tapi BELUM Maghrib,
-        // strukturnya harus mengunci angka tanggal ke batas akhir Zulkaidah
+        // Pengaman transisi siang hari (H-29/30) agar tidak melompat sebelum waktunya
         if (tglSekarang.getTime() === tglIjtima.getTime() + 86400000 && sebelumMaghribHariH) {
-            // Hari Minggu pagi/siang ini adalah 30 Zulkaidah (Hisab)
             d = 30; 
         } else if (tglSekarang.getTime() === tglIjtima.getTime() && jamNow >= maghrib) {
-            // Sabtu malam kemarin setelah maghrib juga 30 Zulkaidah
             d = 30;
         }
     }
 
+    // Koreksi jika penambahan bulan melewati batas akhir tahun (Bulan 12 + 1)
     let m = baseMonth;
     if (m > 12) {
         m = 1;
@@ -2870,32 +2874,35 @@ function getHijriAstronomical(lat, lon, customDate = null) {
 
 // === HIJRI HYBRID ===
 let statusHilal = "-";
-function getHijriHybrid(lat, lon, customDate = null) {
-    const now = customDate ? new Date(customDate) : new Date();
+function getHijriHybrid(lat, lon, customDate = null) { 
+    const now = customDate ? new Date(customDate) : new Date(); 
     
-    // 1. Ambil data hisab
-    const hisab = getHijriAstronomical(lat, lon, now);
+    // 1. Ambil data dasar dari hisab dinamis
+    const hisab = getHijriAstronomical(lat, lon, now); 
     
-    // 2. Gunakan Cache Ijtima
-    const ijtima = CACHED_IJTIMA;
-    const tglPenentuan = new Date(ijtima);
-    tglPenentuan.setHours(18, 15, 0, 0);
+    // 2. Gunakan posisi hilal dari data waktu saat ini (Live per detik)
+    // agar penilaian MABIMS mengikuti realitas langit sore hari tersebut
+    const hilal = typeof hitungHilalCore === 'function' ? hitungHilalCore(lat, lon, now) : { alt: 0, elo: 0 }; 
+    const imkanRukyat = (hilal.alt >= 3 && hilal.elo >= 6.4); 
 
-    // 3. Panggil core (hitung posisi hilal)
-    const hilal = hitungHilalCore(lat, lon, tglPenentuan);
-    const imkanRukyat = (hilal.alt >= 3 && hilal.elo >= 6.4);
+    let d = hisab.d; 
+    let m = hisab.m; 
+    let y = hisab.y; 
 
-    let d = hisab.d;
-    let m = hisab.m;
-    let y = hisab.y;
+    // Logika Hybrid Universal: 
+    // Jika fungsi Hisab sudah melompat ke tanggal 1 bulan baru setelah Maghrib, 
+    // tetapi hasil observasi sore harinya tidak imkan (tidak memenuhi MABIMS), 
+    // maka kalender Hybrid akan memundurkan tanggalnya agar terjadi Istikmal (30 hari).
+    if (d === 1 && !imkanRukyat) { 
+        d = 30; 
+        m -= 1; 
+        if (m < 1) { 
+            m = 12; 
+            y--; 
+        } 
+    } 
 
-    if (!imkanRukyat) d -= 1;
-
-    if (d < 1) {
-        d = 30; m -= 1;
-        if (m < 1) { m = 12; y--; }
-    }
-    return { d, m, y };
+    return { d, m, y }; 
 }
 
 // === RESET HYBRID ===
