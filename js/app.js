@@ -2815,6 +2815,7 @@ function getHijriAstronomical(lat, lon, customDate = null) {
     const now = customDate ? new Date(customDate) : new Date(); 
     const ijtima = CACHED_IJTIMA; 
     
+    // Reset jam ke 00:00:00 untuk perbandingan tanggal murni
     const tglSekarang = new Date(now.getFullYear(), now.getMonth(), now.getDate()); 
     const tglIjtima = new Date(ijtima.getFullYear(), ijtima.getMonth(), ijtima.getDate()); 
     
@@ -2825,23 +2826,31 @@ function getHijriAstronomical(lat, lon, customDate = null) {
     let d = diffDays; 
     if (jamNow >= maghrib) d += 1; 
 
-    // === PERBAIKAN LOGIKA SIKLUS BULAN (PENGUNCI TRANSISI) ===
-    // Suku dasar bulan Zulkaidah (Bulan 11) untuk tahun berjalan
-    let baseMonth = 11; 
+    // === PERBAIKAN LOGIKA: KUNCI TRANSISI HARI KALENDER ===
+    let baseMonth = 11; // Default: Zulkaidah
     let y = 1447;
 
-    // Jika waktu SEKARANG sudah melewati detik waktu IJTIMA, 
-    // berarti secara astronomis kita sudah masuk ke siklus bulan berikutnya (Zulhijjah / Bulan 12)
-    if (now.getTime() >= ijtima.getTime()) {
-        baseMonth = 12; // Paksa maju ke Zulhijjah, tidak boleh macet di Zulkaidah
-        
-        // Skenario reset tanggal: karena ini siklus baru setelah ijtimak, 
-        // pastikan nilainya tidak melanjutkan hitungan sisa hari bulan lalu
+    // Transisi bulan BARU AKAN AKTIF secara astronomis jika:
+    // 1. Hari masehi saat ini sudah melewati hari ijtima (Besok/Minggu dst)
+    // 2. ATAU jika hari ini adalah hari ijtima, tetapi waktu sudah MELEWATI MAGHRIB HARI BERIKUTNYA.
+    if (tglSekarang > tglIjtima) {
+        baseMonth = 12; // Maju ke Zulhijjah (Hanya berlaku hari Minggu besok dan seterusnya)
         if (d <= 0) d = 1; 
     } else {
-        // Jika belum ijtima (masih proses mendekati akhir bulan)
-        // Jika d menjadi 0 atau minus sebelum maghrib, amankan ke tanggal akhir bulan 29/30
-        if (d <= 0) d = 30 + d; 
+        // Jika masih di hari yang sama dengan ijtima (Sabtu malam ini)
+        // Kita paksa kalender mempertahankan akhir bulan Zulkaidah
+        baseMonth = 11; 
+        
+        // Perhitungan tanggal mundur dari hari H-29/30
+        if (d <= 0) {
+            d = 30 + d; 
+        }
+        
+        // Pengaman ekstra: Jika setelah maghrib di hari sabtu malam ini, 
+        // pastikan tanggal berada di batas akhir bulan lama (30 Zulkaidah)
+        if (jamNow >= maghrib && d < 29) {
+            d = 30;
+        }
     }
 
     let m = baseMonth;
