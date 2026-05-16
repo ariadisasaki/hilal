@@ -1,4 +1,4 @@
-const CACHE_NAME = "hilal-v1.5.9";
+const CACHE_NAME = "hilal-v1.5.10";
 
 const BASE_PATH = "/";
 
