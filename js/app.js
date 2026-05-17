@@ -38,18 +38,18 @@ let hijriState = {
   locked: false
 };
 
-// ============================================================
+// =============================================
 // AREA 1: VARIABEL GLOBAL & KONSTANTA APLIKASI
-// ============================================================
+// =============================================
 const SYNODIC_MONTH = 29.530588;
 const DAY_MS = 86400000;
 
 let CACHED_LAST_IJTIMA = null;
 let CACHED_NEXT_IJTIMA = null;
 
-// ============================================================
-// AREA 1.5: FUNGSI INTI MEKANIKA FALAK (WAJIB DI SINI AGAR BISA DIPANGGIL STARTUP)
-// ============================================================
+// =====================================
+// AREA 1.5: FUNGSI INTI MEKANIKA FALAK 
+// =====================================
 function hitungLastIjtimaMeeusMurni() {
     const now = new Date();
     
@@ -84,9 +84,7 @@ function hitungLastIjtimaMeeusMurni() {
 
     const objekDateHasil = new Date(ijtimaMillisUTC);
 
-    // SAFEGUARD UTAMA: Jika hitungan mendarat di kisaran tanggal 16/17 Mei 2026,
-    // kita paksa kunci langsung ke titik koordinat waktu hakiki konjunksi Zulhijjah 1447 H.
-    // 16 Mei 2026 pukul 20:03:08 UTC = 17 Mei 2026 pukul 04:03:08 WITA.
+    // SAFEGUARD UTAMA, paksa kunci langsung ke titik koordinat waktu hakiki konjungsi
     if (objekDateHasil.getUTCFullYear() === 2026 && objekDateHasil.getUTCMonth() === 4 && (objekDateHasil.getUTCDate() === 16 || objekDateHasil.getUTCDate() === 17)) {
         return new Date(Date.UTC(2026, 4, 16, 20, 3, 8, 0));
     }
@@ -99,7 +97,7 @@ function hitungNextIjtimaMeeusMurni() {
     const utcMillis = now.getTime() + (now.getTimezoneOffset() * 60000);
     const JD_UTC = (utcMillis / 86400000) + 2440587.5;
     
-    // KUNCI: Gunakan variabel let lokal 'kNext' agar terisolasi sempurna
+    // KUNCI: variabel let lokal 'kNext' agar terisolasi sempurna
     let kNext = Math.floor((JD_UTC - 2451550.09765) / 29.530588853);
 
     const hitungMeeus = (kLokal) => {
@@ -124,7 +122,7 @@ function hitungNextIjtimaMeeusMurni() {
 
     const objekDateHasil = new Date(ijtimaMillis - (now.getTimezoneOffset() * 60000));
 
-    // Safeguard pengunci Juni 2026
+    // Safeguard pengunci
     if (objekDateHasil.getUTCFullYear() === 2026 && objekDateHasil.getUTCMonth() === 5 && objekDateHasil.getUTCDate() === 15) {
         return new Date(Date.UTC(2026, 5, 15, 8, 54, 19, 0));
     }
@@ -141,18 +139,18 @@ function getCountdownIjtima(now, target){
   return `${jam} jam ${menit} menit ${detik} detik`;
 }
 
-// ============================================================
+// ==========================================
 // AREA 1.7: JALANKAN REFRESH DATA (STARTUP)
-// ============================================================
+// ==========================================
 function refreshIjtimaData() {
     CACHED_LAST_IJTIMA = hitungLastIjtimaMeeusMurni();
     CACHED_NEXT_IJTIMA = hitungNextIjtimaMeeusMurni();
 }
 refreshIjtimaData();
 
-// ============================================================
-// AREA 2: PROXY GATEWAY (PENGGANTI FUNGSI LAMA)
-// ============================================================
+// =======================
+// AREA 2: PROXY GATEWAY 
+// =======================
 function getLastIjtima() {
     return CACHED_LAST_IJTIMA || hitungLastIjtimaMeeusMurni();
 }
@@ -160,9 +158,9 @@ function getNextIjtima() {
     return CACHED_NEXT_IJTIMA || hitungNextIjtimaMeeusMurni();
 }
 
-// ============================================================
-// AREA 3: LOGIKA HIJRI HISAB & HYBRID (SINKRON)
-// ============================================================
+// ====================================
+// AREA 3: LOGIKA HIJRI HISAB & HYBRID 
+// ====================================
 function getHijriAstronomical(lat, lon, customDate = null) { 
     const now = customDate ? new Date(customDate) : new Date(); 
     const ijtima = getLastIjtima(); 
@@ -1554,18 +1552,18 @@ async function initApp(lat, lon) {
     // Bersihkan interval debug lama jika ada 
     if (debugInterval) clearInterval(debugInterval); 
 
-    // ============================================================ 
+    // ==============================================
     // TIMER 1: Monitoring & Debug (setiap 10 Detik) 
-    // ============================================================ 
+    // ==============================================
     debugInterval = setInterval(() => { 
         if (currentLat && currentLon) { 
             debugHilal(); 
         } 
     }, 10000); 
 
-    // ============================================================ 
+    // ====================================================================== 
     // TIMER 2: Jantung Utama - Update Data, Kalender, & UI (setiap 1 Detik) 
-    // ============================================================ 
+    // ====================================================================== 
     setInterval(() => { 
         if (currentLat && currentLon) { 
             const now = new Date();
@@ -1580,7 +1578,7 @@ async function initApp(lat, lon) {
             if (typeof updateHilalAR === 'function') updateHilalAR(); 
 
             // SINKRONISASI HIJRIAH: Jalankan pembaruan kalender di detik yang sama 
-            // Ini menjamin tanggal langsung lompat naik tepat di detik masuknya Maghrib!
+            // agar tanggal langsung lompat naik tepat di detik masuknya Maghrib!
             if (typeof updateHijriDisplay === 'function') updateHijriDisplay(); 
         } 
     }, 1000); 
@@ -1603,8 +1601,7 @@ function hitungHilal(lat, lon, customTime = null) {
     try { 
         const now = customTime ? new Date(customTime) : new Date(); 
         
-        // KOREKSI UTAMA: Panggil fungsi getLastIjtima() Meeus murni yang baru
-        // Ini akan mengambil waktu konjungsi subuh tadi secara akurat
+        // KOREKSI UTAMA: Panggil fungsi getLastIjtima() Meeus murni
         const ijtima = typeof getLastIjtima === 'function' ? getLastIjtima() : new Date(); 
         
         // Ambil data kedua mode
@@ -1626,9 +1623,9 @@ function hitungHilal(lat, lon, customTime = null) {
         const hariHisab = dataHisab.d || 0; 
         const hariHybrid = dataHybrid.d || 0;
 
-        // =========================
-        // LOGIKA KOMBINASI PILIHAN
-        // =========================
+        // =================
+        // LOGIKA KOMBINASI 
+        // =================
         let hariAcuan = hariHisab; // Default hari biasa menggunakan Hisab (1-28)
 
         // Jika Hybrid mendeteksi fase kritis akhir bulan (29 atau 30),
@@ -1662,7 +1659,7 @@ function hitungHilal(lat, lon, customTime = null) {
         const aksiCakrawala = alt >= 0 ? "Hilal berada di atas cakrawala." : "Menunggu hilal terbit melewati garis cakrawala."; 
         const tinggiTampilanUtama = alt >= 0 ? alt.toFixed(2) : Math.abs(alt).toFixed(2); 
 
-        // 1. KONDISI JIKA HILAL DI BAWAH UFUK (DINI HARI / MALAM SEBELUM TERBIT)
+        // 1. KONDISI JIKA HILAL DI BAWAH UFUK (DINI HARI/MALAM SEBELUM TERBIT)
         if (alt < 0) { 
             if (statusEl) statusEl.innerHTML = `STATUS: <span style="color:#f87171">NON-OBSERVABLE</span>`; 
             if (prediksiEl) prediksiEl.innerText = `Posisi hilal saat ini ${tinggiTampilanUtama}° ${posisiUfukUtama}. ${aksiCakrawala}`; 
@@ -1674,7 +1671,6 @@ function hitungHilal(lat, lon, customTime = null) {
                 if (statusEl) statusEl.innerText = `Fase Konvensional (H-${hariAcuan})`; 
                 if (prediksiEl) prediksiEl.innerText = `Hilal berada pada ketinggian ${alt.toFixed(2)}°. Fase hilal berjalan normal, belum memasuki jendela waktu rukyat.`; 
             } else { 
-                // Tampilan otomatis rapi menjadi H-29 mengikuti Hybrid siang ini
                 if (statusEl) statusEl.innerHTML = `STATUS: <span style="color:#fbbf24">PERSIAPAN RUKYAT (H-${hariAcuan})</span>`; 
                 const selisihAlt = (3 - alt).toFixed(2); 
                 const pesanPrediksi = imkan ? 
@@ -1727,7 +1723,7 @@ function hitungHilal(lat, lon, customTime = null) {
     } 
 }
 
-// === HIJRI INSIGHT FINAL REVISI ===
+// === HIJRI INSIGHT ===
 function getHijriInsight(data, maghrib, now) {
   // 1. SINKRONISASI DATA: Ambil nilai langsung dari elemen kartu data hilal
   const altText = document.getElementById("alt")?.innerText || "0";
@@ -1784,7 +1780,7 @@ function getHijriInsight(data, maghrib, now) {
   const statusCakrawala = altAsli >= 0 ? "Kondisi hilal di atas cakrawala." : "Hilal berada di bawah garis cakrawala.";
   const tinggiTampilan = altText.replace("°", "");
 
-  // 5. REVISI LOGIKA WAKTU KRITIS (SINKRON DENGAN ALTITUDE)
+  // 5. REVISI LOGIKA WAKTU KRITIS
   let teksWaktuKritis = "";
   if (altAsli < -0.5) { 
     // Jika hilal sudah terbenam (altitude minus)
@@ -1793,7 +1789,7 @@ function getHijriInsight(data, maghrib, now) {
     // Jika masih siang/sore sebelum maghrib
     teksWaktuKritis = `Lakukan kalibrasi alat sekarang. Pengamatan visual dimulai saat Matahari terbenam (estimasi pukul <b>${formatWaktu(maghribDec)}</b>).`;
   } else {
-    // Jika sudah maghrib DAN hilal masih di atas ufuk
+    // Jika sudah maghrib dan hilal masih di atas ufuk
     teksWaktuKritis = `<b style="color:#4ade80">Waktu Emas:</b> Matahari telah terbenam. Optimalkan pencarian sekarang sebelum hilal ikut terbenam ke bawah ufuk.`;
   }
 
@@ -2819,12 +2815,9 @@ function simpanRukyat(data){
   localStorage.setItem("rukyatLogs", JSON.stringify(logs));
 }
 
-// ============================================================
-// === UPDATE PREDIKSI CARD (VERSI SINKRONISASI TOTAL & LIVE) ===
-// ============================================================
+// === PREDIKSI CARD ===
 function updatePrediksiCard(){
-  // 1. PAKSA BILAS CACHE: Setiap detik, pastikan memori global di-refresh 
-  // agar sinkron dengan perbaikan zona waktu fungsi Meeus murni yang baru.
+  // 1. PAKSA CACHE: Pastikan memori global di-refresh agar sinkron dengan zona waktu fungsi Meeus murni.
   if (typeof refreshIjtimaData === 'function') {
       refreshIjtimaData();
   }
@@ -2838,7 +2831,7 @@ function updatePrediksiCard(){
   // 3. Hitung status apakah saat ini sudah melewati waktu ijtimak bulan ini
   const sudahIjtima = now >= ijtimaNow;
 
-  // 4. CETAK DATA KONDISI KE ELEMEN UI SECARA AMAN (Cek ketersediaan ID)
+  // 4. Cetak Data Kondisi ke Elemen UI
   if (document.getElementById("statusIjtima")) {
     document.getElementById("statusIjtima").innerText = sudahIjtima ? "✅ Sudah Ijtima" : "⏳ Belum Ijtima";
   }
@@ -3129,7 +3122,7 @@ function debugHilal() {
         const hybrid = typeof getHijriHybrid === 'function' ? getHijriHybrid(currentLat, currentLon) : {d:0,m:1,y:0};
         const bulanIndo = ["","Muharram","Safar","Rabiul Awal","Rabiul Akhir","Jumadil Awal","Jumadil Akhir","Rajab","Syaban","Ramadhan","Syawal","Zulkaidah","Zulhijjah"];
 
-        // AMBIL DATA DARI FUNGSI PROXY BARU
+        // AMBIL DATA DARI PROXY
         const ijtimaLast = typeof getLastIjtima === 'function' ? getLastIjtima() : null;
         const ijtimaNext = typeof getNextIjtima === 'function' ? getNextIjtima() : null;
 
@@ -3156,7 +3149,7 @@ function debugHilal() {
 
         console.group("⚙️ System Health");
         console.table({
-            // Diubah agar mendeteksi keberadaan fungsi generator ijtima baru
+            // Mendeteksi keberadaan fungsi generator ijtima baru
             "Ijtima Engine": (ijtimaLast && ijtimaNext) ? "✅ Connected (Meeus)" : "❌ DISCONNECTED",
             "Hilal Data": (moon && moon.alt !== 0) ? "✅ Active" : "⚠️ Still Zero/Loading",
             "GPS Status": locationInitialized ? "✅ Locked" : "⏳ Searching",
