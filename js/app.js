@@ -1475,7 +1475,7 @@ function hitungHilal(lat, lon, customTime = null) {
                 const selisihAlt = (3 - alt).toFixed(2); 
                 const pesanPrediksi = imkan ? 
                     `Parameter MABIMS terpenuhi. Siapkan observasi pada azimuth ${azi.toFixed(2)}° saat matahari terbenam.` : 
-                    `Tinggi saat ini ${alt.toFixed(2)}°. Butuh tambahan ${selisihAlt}° lagi untuk mencapai batas minimal visibilitas MABIMS.`; 
+                    `Tinggi hilal saat ini ${alt.toFixed(2)}°. Butuh tambahan ${selisihAlt}° lagi untuk mencapai batas minimal visibilitas MABIMS.`; 
                 if (prediksiEl) prediksiEl.innerText = pesanPrediksi; 
             } 
         } 
@@ -1507,7 +1507,7 @@ function hitungHilal(lat, lon, customTime = null) {
                 else if (a >= 292.5 && a < 337.5) arahBulan = "Barat Laut"; 
 
                 if (prediksiEl) { 
-                    prediksiEl.innerText = `Hilal terpantau di arah ${arahBulan} dengan iluminasi ${illumination.toFixed(1)}%. Kondisi langit mendukung untuk identifikasi fase.`; 
+                    prediksiEl.innerText = `Hilal terpantau di arah ${arahBulan} dengan iluminasi ${illumination.toFixed(2)}%. Kondisi langit mendukung untuk identifikasi fase.`; 
                 } 
             } 
         } 
@@ -1564,7 +1564,7 @@ function getHijriInsight(data, maghrib, now) {
 
   let teksOrientasi = "";
   if (isMalam || altAsli < 0) {
-    teksOrientasi = `Gunakan kompas atau alat navigasi Anda. Arahkan pandangan langsung ke arah <b>${getArah(azi)}</b> (Azimuth <b>${azi.toFixed(1)}°</b>). Di titik itulah posisi hilal berada secara horizontal.`;
+    teksOrientasi = `Gunakan kompas atau alat navigasi Anda. Arahkan pandangan langsung ke arah <b>${getArah(azi)}</b> (Azimuth <b>${azi.toFixed(2)}°</b>). Di titik itulah posisi hilal berada secara horizontal.`;
   } else {
     const referensiWaktu = isSoreSiaga ? "terbenam" : "saat ini";
     let selisihAzi = azi - sun.azi;
@@ -1572,7 +1572,7 @@ function getHijriInsight(data, maghrib, now) {
     if (selisihAzi < -180) selisihAzi += 360;
     const posisiHorisontal = selisihAzi >= 0 ? "sebelah kanan" : "sebelah kiri";
 
-    teksOrientasi = `Gunakan posisi Matahari <b>${referensiWaktu}</b> di arah <b>${getArah(sun.azi)}</b> sebagai titik nol. Geser pandangan Anda ke <b>${posisiHorisontal}</b> sejauh <b>${Math.abs(selisihAzi).toFixed(1)}°</b>. Di titik itulah posisi hilal berada secara horizontal.`;
+    teksOrientasi = `Gunakan posisi Matahari <b>${referensiWaktu}</b> di arah <b>${getArah(sun.azi)}</b> sebagai titik nol. Geser pandangan Anda ke <b>${posisiHorisontal}</b> sejauh <b>${Math.abs(selisihAzi).toFixed(2)}°</b>. Di titik itulah posisi hilal berada secara horizontal.`;
   }
 
   // 4. POSISI TERHADAP UFUK
