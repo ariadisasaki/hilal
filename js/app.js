@@ -2866,13 +2866,14 @@ function nextMonth(current){
 // ==========================================
 function getHijriAstronomical(lat, lon, customDate = null) { 
     const now = customDate ? new Date(customDate) : new Date(); 
-    const ijtima = CACHED_IJTIMA; 
+    const ijtima = getLastIjtima(); // Memanggil rumus presisi Jean Meeus 04:03 WITA
     
     const tglSekarang = new Date(now.getFullYear(), now.getMonth(), now.getDate()); 
     const tglIjtima = new Date(ijtima.getFullYear(), ijtima.getMonth(), ijtima.getDate()); 
     
+    // Hitung selisih hari murni astronomis
     let diffDays = Math.round((tglSekarang - tglIjtima) / 86400000); 
-    const maghrib = hitungMaghrib(lat, lon, now)?.decimal ?? 18; 
+    const maghrib = typeof hitungMaghrib === 'function' ? (hitungMaghrib(lat, lon, now)?.decimal ?? 18) : 18; 
     const jamNow = now.getHours() + now.getMinutes() / 60; 
     
     let d = diffDays; 
@@ -2889,7 +2890,7 @@ function getHijriAstronomical(lat, lon, customDate = null) {
     let y = tahunIjtima;
     const sebelumMaghribHariH = jamNow < maghrib;
 
-    // Logika Transisi Hisab
+    // Logika Transisi Kalender Hisab
     if (tglSekarang > tglIjtima && !sebelumMaghribHariH) {
         baseMonth = bulanIjtima + 1; 
         if (d <= 0) d = 1; 
@@ -2897,8 +2898,8 @@ function getHijriAstronomical(lat, lon, customDate = null) {
         baseMonth = bulanIjtima; 
         if (d <= 0) d = 30 + d; 
         
-        // Siang hari menjelang rukyat (Hari H), Hisab menampilkan 30 Zulkaidah
-        if (tglSekarang.getTime() === tglIjtima.getTime() + 86400000 && sebelumMaghribHariH) {
+        // Pengaman transisi siang hari di hari konjungsi (Hari H)
+        if (tglSekarang.getTime() === tglIjtima.getTime() && sebelumMaghribHariH) {
             d = 30; 
         } else if (tglSekarang.getTime() === tglIjtima.getTime() && jamNow >= maghrib) {
             d = 30;
@@ -2908,17 +2909,25 @@ function getHijriAstronomical(lat, lon, customDate = null) {
     let m = baseMonth;
     if (m > 12) { m = 1; y += 1; }
 
-    // KITA SERTAKAN DATA RAW (diffDays & sebelumMaghribHariH) UNTUK DIKONSUMSI OLEH HYBRID
-    return { d: Math.max(1, d), m, y, rawDiff: diffDays, isBeforeMaghrib: sebelumMaghribHariH }; 
+    // DETEKSI APAKAH HARI INI SECARA TANGGAL SAMA DENGAN HARI IJTIMA
+    const isSameDayAsIjtima = tglSekarang.getTime() === tglIjtima.getTime();
+
+    return { 
+        d: Math.max(1, d), 
+        m, 
+        y, 
+        isHariHIjtima: isSameDayAsIjtima, 
+        isBeforeMaghrib: sebelumMaghribHariH 
+    }; 
 }
 
 // ==========================================
-// 2. HIJRI HYBRID (SIPIL - CERDAS & DINAMIS)
+// 2. HIJRI HYBRID (SIPIL - SINKRONISASI AKURAT)
 // ==========================================
 function getHijriHybrid(lat, lon, customDate = null) { 
     const now = customDate ? new Date(customDate) : new Date(); 
     
-    // Ambil data dasar dan data raw dari Hisab
+    // Ambil data dari hisab
     const hisab = getHijriAstronomical(lat, lon, now); 
     
     const hilal = typeof hitungHilalCore === 'function' ? hitungHilalCore(lat, lon, now) : { alt: 0, elo: 0 }; 
@@ -2928,19 +2937,21 @@ function getHijriHybrid(lat, lon, customDate = null) {
     let m = hisab.m; 
     let y = hisab.y; 
 
-    // === STRATEGI JOROK / HARDCODE DILEPAS, DIGANTI LOGIKA SIKLUS SIPIL ===
-    
-    if (hisab.rawDiff === 1 && hisab.isBeforeMaghrib) {
-        // Kasus Siang Hari Ini (Minggu): 
-        // Secara kalender sipil, sebelum rukyat dimulai, hari ini WAJIB berada di tanggal 29.
+    // LOGIKA PENENTUAN SIKLUS SIPIL BERDASARKAN METODE HARI H CONJUNCTION
+    if (hisab.isHariHIjtima && hisab.isBeforeMaghrib) {
+        // KASUS SORE INI (1 JAM SEBELUM MAGHRIB):
+        // Kalender lapangan/Sipil WAJIB berada di tanggal 29 Zulkaidah
         d = 29;
-        m = hisab.m; // Tetap di bulan berjalan (Zulkaidah)
+        m = hisab.m; 
     } 
-    else if (hisab.rawDiff === 1 && !hisab.isBeforeMaghrib && !imkanRukyat) {
-        // Kasus Nanti Malam (Minggu setelah Maghrib) jika gagal Imkan:
-        // Kalender Sipil baru SAH menetapkan tanggal 30 (Istikmal) setelah verifikasi hilal.
-        d = 30;
-        m = hisab.m;
+    else if (hisab.isHariHIjtima && !hisab.isBeforeMaghrib) {
+        // KASUS NANTI MALAM (SETELAH MAGHRIB):
+        // Jika hasil observasi hilal masuk kriteria imkan, besok tanggal 1 Zulhijjah (kembar dengan hisab)
+        // Jika tidak masuk kriteria, maka dipaksa Istikmal menjadi tanggal 30 Zulkaidah
+        if (!imkanRukyat) {
+            d = 30;
+            m = hisab.m;
+        }
     }
 
     return { d, m, y }; 
