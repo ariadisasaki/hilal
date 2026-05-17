@@ -2897,12 +2897,15 @@ function getHijriAstronomical(lat, lon, customDate = null) {
 }
 
 // ============================================================
-// 3. PERBAIKAN ENGINE INTERVENSI HYBRID
+// REVISI FINAL ENGINE INTERVENSI HYBRID (SINKRON 100%)
 // ============================================================
 function getHijriHybrid(lat, lon, customDate = null) { 
     const now = customDate ? new Date(customDate) : new Date(); 
+    
+    // 1. Ambil data dasar dari Hisab
     const hisab = getHijriAstronomical(lat, lon, now); 
     
+    // 2. Ambil data realitas visibilitas hilal
     const hilal = typeof hitungHilalCore === 'function' ? hitungHilalCore(lat, lon, now) : { alt: 0, elo: 0 }; 
     const imkanRukyat = (hilal.alt >= 3 && hilal.elo >= 6.4); 
 
@@ -2910,16 +2913,25 @@ function getHijriHybrid(lat, lon, customDate = null) {
     let m = hisab.m; 
     let y = hisab.y; 
 
+    // 3. Logika Sinkronisasi Lapangan Sipil
     if (hisab.isHariHIjtima) {
         if (hisab.isBeforeMaghrib) {
-            d = 29; m = hisab.m; // Sore hari sebelum maghrib tetap 29
+            // Sore hari sebelum maghrib: Sipil/Hybrid wajib masih tanggal 29 Zulkaidah
+            d = 29; 
+            m = hisab.m; // Mengikuti bulan berjalan (Zulkaidah)
         } else {
-            // Pasca Maghrib Hari H: Jika Hilal Imkan (Lolos), ikuti tanggal 1 Hisab.
-            // Jika Hilal Gagal Imkan, paksa Istikmal ke 30 Zulkaidah.
+            // PASCA-MAGHRIB HARI H:
+            // Jika HILAL TIDAK TERLIHAT (Gagal Imkan), lakukan Istikmal (Genapkan bulan Zulkaidah)
             if (!imkanRukyat) {
                 d = 30;
-                m = hisab.m; // Tetap di bulan Zulkaidah
+                // Karena dipaksa istikmal ke tanggal 30, maka bulannya harus dikunci di Zulkaidah (Bulan 11)
+                // Kita kurangi 1 dari hisab.m yang sudah telanjur maju ke Zulhijjah
+                m = hisab.m - 1; 
+                if (m < 1) { m = 12; y -= 1; }
             }
+            // JIKA HILAL LOLOS IMKAN (SEPERTI SORE INI):
+            // Blok if (!imkanRukyat) dilewati, d, m, dan y akan otomatis 100% KEMBAR 
+            // mengikuti hitungan tanggal 1 Zulhijjah dari Hisab secara alami.
         }
     }
 
