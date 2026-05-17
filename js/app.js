@@ -1528,59 +1528,68 @@ async function updateAddress(lat, lon) {
 }
 
 // 3. Fungsi Inisialisasi Utama Aplikasi
-async function initApp(lat, lon) {
-    if (!lat || !lon) return;
-    locationInitialized = true;
+async function initApp(lat, lon) { 
+    if (!lat || !lon) return; 
     
-    // A. Jalankan fungsi pendukung sekali di awal
-    try {
-        if (typeof getMagneticDeclination === 'function') await getMagneticDeclination(lat, lon);
-        if (typeof startMaghribWatcher === 'function') startMaghribWatcher(lat, lon);
-    } catch (e) { console.warn("Pendukung gagal."); }
+    // Kunci koordinat ke variabel global agar sinkron dengan interval
+    currentLat = lat;
+    currentLon = lon;
+    locationInitialized = true; 
 
-    // B. Hitungan Pertama (Saat aplikasi baru dibuka)
-    if (typeof refreshIjtimaData === 'function' && !CACHED_LAST_IJTIMA) refreshIjtimaData();
-    hilalDataFull = hitungHilal(lat, lon);
+    // A. Jalankan fungsi pendukung sekali di awal 
+    try { 
+        if (typeof getMagneticDeclination === 'function') await getMagneticDeclination(lat, lon); 
+        if (typeof startMaghribWatcher === 'function') startMaghribWatcher(lat, lon); 
+    } catch (e) { 
+        console.warn("Pendukung gagal."); 
+    } 
 
-    // Bersihkan interval debug lama jika ada
-    if (debugInterval) clearInterval(debugInterval);
+    // B. Hitungan Pertama (Saat aplikasi baru dibuka) 
+    // Menggunakan typeof untuk memeriksa apakah fungsi engine Meeus sudah siap
+    if (typeof refreshIjtimaData === 'function') refreshIjtimaData(); 
+    
+    // Hitung data awal menggunakan koordinat murni
+    hilalDataFull = hitungHilal(currentLat, currentLon); 
 
-    // ============================================================
-    // TIMER 1: Monitoring & Debug (setiap 10 Detik)
-    // ============================================================
-    debugInterval = setInterval(() => {
-        if (currentLat && currentLon) {
-            // REVISI: Perintah hilalDataFull dihapus dari sini karena sudah ada di Timer 2
-            // Kita biarkan ini hanya untuk fungsi log/debug saja
+    // Bersihkan interval debug lama jika ada 
+    if (debugInterval) clearInterval(debugInterval); 
+
+    // ============================================================ 
+    // TIMER 1: Monitoring & Debug (setiap 10 Detik) 
+    // ============================================================ 
+    debugInterval = setInterval(() => { 
+        if (currentLat && currentLon) { 
             debugHilal(); 
-        }
+        } 
     }, 10000); 
 
-    // ============================================================
-    // TIMER 2: Jantung Utama - Update Data & UI (setiap 1 Detik)
-    // ============================================================
-    setInterval(() => {
-      if (currentLat && currentLon) {
-        // 1. Hitung ulang posisi benda langit setiap detik agar LIVE
-        hilalDataFull = hitungHilal(currentLat, currentLon); 
-        
-        // 2. Langsung update kartu-kartu di layar
-        if (typeof renderUI === 'function') renderUI();           // Update Data Hilal
-        if (typeof updateSunCard === 'function') updateSunCard(); // Update Data Matahari
-        if (typeof updatePrediksiCard === 'function') updatePrediksiCard();
-        if (typeof updateHilalAR === 'function') updateHilalAR();
-      }
-    }, 1000);
+    // ============================================================ 
+    // TIMER 2: Jantung Utama - Update Data, Kalender, & UI (setiap 1 Detik) 
+    // ============================================================ 
+    setInterval(() => { 
+        if (currentLat && currentLon) { 
+            const now = new Date();
 
-    // ============================================================
-    // TIMER 3: Kalender (setiap 2 Detik)
-    // ============================================================
-    setInterval(() => {
-        if (typeof updateHijriDisplay === 'function') updateHijriDisplay();
-    }, 2000);
+            // 1. Hitung ulang posisi benda langit setiap detik agar LIVE 
+            hilalDataFull = hitungHilal(currentLat, currentLon, now); 
 
-    // Eksekusi tampilan awal secara instan tanpa menunggu interval
-    if (typeof updateSunCard === 'function') updateSunCard();
+            // 2. Langsung update kartu-kartu di layar secara sekuensial (berurutan)
+            if (typeof renderUI === 'function') renderUI(); 
+            if (typeof updateSunCard === 'function') updateSunCard(); 
+            if (typeof updatePrediksiCard === 'function') updatePrediksiCard(); 
+            if (typeof updateHilalAR === 'function') updateHilalAR(); 
+
+            // SINKRONISASI HIJRIAH: Jalankan pembaruan kalender di detik yang sama 
+            // Ini menjamin tanggal langsung lompat naik tepat di detik masuknya Maghrib!
+            if (typeof updateHijriDisplay === 'function') updateHijriDisplay(); 
+        } 
+    }, 1000); 
+
+    // Eksekusi tampilan awal secara instan saat startup tanpa menunggu interval 1 detik
+    if (typeof updateSunCard === 'function') updateSunCard(); 
+    if (typeof updatePrediksiCard === 'function') updatePrediksiCard();
+    if (typeof updateHijriDisplay === 'function') updateHijriDisplay();
+    
     debugHilal(); 
 }
 
