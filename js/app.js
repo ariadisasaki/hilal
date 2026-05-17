@@ -2897,7 +2897,7 @@ function getHijriAstronomical(lat, lon, customDate = null) {
 }
 
 // ============================================================
-// REVISI FINAL ENGINE INTERVENSI HYBRID (SINKRON 100%)
+// ENGINE HYBRID SINKRON TOTAL (MENGUNCI EVALUASI DI JAM MAGHRIB)
 // ============================================================
 function getHijriHybrid(lat, lon, customDate = null) { 
     const now = customDate ? new Date(customDate) : new Date(); 
@@ -2905,33 +2905,40 @@ function getHijriHybrid(lat, lon, customDate = null) {
     // 1. Ambil data dasar dari Hisab
     const hisab = getHijriAstronomical(lat, lon, now); 
     
-    // 2. Ambil data realitas visibilitas hilal
-    const hilal = typeof hitungHilalCore === 'function' ? hitungHilalCore(lat, lon, now) : { alt: 0, elo: 0 }; 
+    // 2. Hitung waktu Maghrib hari ini secara presisi
+    const desimalMaghrib = typeof hitungMaghrib === 'function' ? (hitungMaghrib(lat, lon, now)?.decimal ?? 18) : 18; 
+    
+    // 3. REKAYASA WAKTU: Buat objek jam khusus tepat pada saat Maghrib sore tadi
+    const waktuMaghribHariIni = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const jamMaghrib = Math.floor(desimalMaghrib);
+    const menitMaghrib = Math.floor((desimalMaghrib - jamMaghrib) * 60);
+    const detikMaghrib = Math.floor((((desimalMaghrib - jamMaghrib) * 60) - menitMaghrib) * 60);
+    waktuMaghribHariIni.setHours(jamMaghrib, menitMaghrib, detikMaghrib, 0);
+
+    // 4. EVALUASI HILAL: Selalu gunakan waktu Maghrib, bukan waktu malam saat ini!
+    const hilal = typeof hitungHilalCore === 'function' ? hitungHilalCore(lat, lon, waktuMaghribHariIni) : { alt: 0, elo: 0 }; 
     const imkanRukyat = (hilal.alt >= 3 && hilal.elo >= 6.4); 
 
     let d = hisab.d; 
     let m = hisab.m; 
     let y = hisab.y; 
 
-    // 3. Logika Sinkronisasi Lapangan Sipil
+    // 5. Logika Intervensi Lapangan Sipil
     if (hisab.isHariHIjtima) {
         if (hisab.isBeforeMaghrib) {
             // Sore hari sebelum maghrib: Sipil/Hybrid wajib masih tanggal 29 Zulkaidah
             d = 29; 
-            m = hisab.m; // Mengikuti bulan berjalan (Zulkaidah)
+            m = hisab.m; 
         } else {
             // PASCA-MAGHRIB HARI H:
-            // Jika HILAL TIDAK TERLIHAT (Gagal Imkan), lakukan Istikmal (Genapkan bulan Zulkaidah)
+            // Karena kita mengunci evaluasi di jam Maghrib, imkanRukyat petang tadi (Lolos kriteria)
+            // akan selalu bernilai TRUE sepanjang malam ini.
             if (!imkanRukyat) {
                 d = 30;
-                // Karena dipaksa istikmal ke tanggal 30, maka bulannya harus dikunci di Zulkaidah (Bulan 11)
-                // Kita kurangi 1 dari hisab.m yang sudah telanjur maju ke Zulhijjah
                 m = hisab.m - 1; 
                 if (m < 1) { m = 12; y -= 1; }
             }
-            // JIKA HILAL LOLOS IMKAN (SEPERTI SORE INI):
-            // Blok if (!imkanRukyat) dilewati, d, m, dan y akan otomatis 100% KEMBAR 
-            // mengikuti hitungan tanggal 1 Zulhijjah dari Hisab secara alami.
+            // JIKA IMKAN RUKYAT TRUE, AKAN REKAT SINKRON DENGAN HISAB (1 ZULHIJJAH)
         }
     }
 
