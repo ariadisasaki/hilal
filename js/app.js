@@ -1411,7 +1411,7 @@ function hitungHilal(lat, lon, customTime = null) {
         const dataHybrid = typeof getHijriHybrid === 'function' ? getHijriHybrid(lat, lon) : {d:0}; 
         
         const data = typeof hitungHilalCore === 'function' ? hitungHilalCore(lat, lon, now) : {}; 
-
+        
         // Variabel Pendukung Asli 
         const alt = Number(data.alt) || 0; 
         const azi = Number(data.azi) || 0; 
@@ -1422,14 +1422,17 @@ function hitungHilal(lat, lon, customTime = null) {
         const hariHisab = dataHisab.d || 0; 
         const hariHybrid = dataHybrid.d || 0;
 
-        // =================
-        // LOGIKA KOMBINASI
-        // =================
-        let hariAcuan = hariHisab;
+        // ============================================================
+        // LOGIKA KOMBINASI PILIHAN (MANDAT USER)
+        // ============================================================
+        let hariAcuan = hariHisab; // Default hari biasa menggunakan Hisab (1-28)
 
-        if (hariHisab === 29 && hariHybrid === 28) {
-            hariAcuan = hariHybrid; 
+        // Jika Hybrid mendeteksi fase kritis akhir bulan (29 atau 30),
+        // Ambil alih kendali menggunakan kalender lapangan Hybrid
+        if (hariHybrid === 29 || hariHybrid === 30) {
+            hariAcuan = hariHybrid;
         }
+        // ============================================================
 
         const set = (id, val) => { 
             const el = document.getElementById(id); 
@@ -1455,18 +1458,19 @@ function hitungHilal(lat, lon, customTime = null) {
         const aksiCakrawala = alt >= 0 ? "Hilal berada di atas cakrawala." : "Menunggu hilal terbit melewati garis cakrawala."; 
         const tinggiTampilanUtama = alt >= 0 ? alt.toFixed(2) : Math.abs(alt).toFixed(2); 
 
-        // 1. KONDISI JIKA HILAL DI BAWAH UFUK
+        // 1. KONDISI JIKA HILAL DI BAWAH UFUK (DINI HARI / MALAM SEBELUM TERBIT)
         if (alt < 0) { 
             if (statusEl) statusEl.innerHTML = `STATUS: <span style="color:#f87171">NON-OBSERVABLE</span>`; 
             if (prediksiEl) prediksiEl.innerText = `Posisi hilal saat ini ${tinggiTampilanUtama}° ${posisiUfukUtama}. ${aksiCakrawala}`; 
         } 
         
-        // 2. KONDISI SORE HARI (SEBELUM MAGHRIB)
+        // 2. KONDISI SORE HARI SEBELUM MAGHRIB (HILAL DI ATAS UFUK)
         else if (sebelumMaghrib) { 
             if (hariAcuan < 29) { 
                 if (statusEl) statusEl.innerText = `Fase Konvensional (H-${hariAcuan})`; 
                 if (prediksiEl) prediksiEl.innerText = `Hilal berada pada ketinggian ${alt.toFixed(1)}°. Fase hilal berjalan normal, belum memasuki jendela waktu rukyat.`; 
             } else { 
+                // Tampilan otomatis rapi menjadi H-29 mengikuti Hybrid siang ini
                 if (statusEl) statusEl.innerHTML = `STATUS: <span style="color:#fbbf24">PERSIAPAN RUKYAT (H-${hariAcuan})</span>`; 
                 const selisihAlt = (3 - alt).toFixed(1); 
                 const pesanPrediksi = imkan ? 
@@ -1476,7 +1480,7 @@ function hitungHilal(lat, lon, customTime = null) {
             } 
         } 
         
-        // 3. KONDISI MALAM HARI (SETELAH MAGHRIB)
+        // 3. KONDISI MALAM HARI SETELAH MAGHRIB (HILAL DI ATAS UFUK)
         else { 
             if (hariAcuan === 29 || hariAcuan === 30 || hariAcuan === 1) { 
                 if (statusEl) { 
