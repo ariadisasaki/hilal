@@ -1599,12 +1599,36 @@ function hitungHilal(lat, lon, customTime = null) {
     const prediksiEl = document.getElementById('prediksi'); 
     
     try { 
-        const now = customTime ? new Date(customTime) : new Date(); 
+        let now = customTime ? new Date(customTime) : new Date(); 
+        
+        // ============================================================
+        // 🔥 LOGIKA PENGUNCI WAKTU MAGHRIB (ANTI-SALAH BACA JAM MALAM)
+        // ============================================================
+        // 1. Dapatkan data tanggal Hybrid saat ini untuk mendeteksi fase kritis
+        const dataHybridCheck = typeof getHijriHybrid === 'function' ? getHijriHybrid(lat, lon, now) : {d:0};
+        
+        // 2. Ambil data Maghrib hari ini
+        const maghribDataCheck = typeof hitungMaghrib === 'function' ? hitungMaghrib(lat, lon, now) : { decimal: 18.0 }; 
+        const jamMaghribDesimal = maghribDataCheck.decimal;
+        
+        const jamNowDesimal = now.getHours() + (now.getMinutes() / 60);
+        
+        // JIKA hari ini adalah tanggal 29 ATAU sudah masuk tanggal 1 malam (setelah Maghrib tanggal 29)
+        // DAN jam perangkat saat ini sudah melewati waktu Maghrib:
+        if ((dataHybridCheck.d === 29 || dataHybridCheck.d === 1) && jamNowDesimal >= jamMaghribDesimal) {
+            // PAKSA waktu perhitungan dikunci pada titik jam Maghrib hari tersebut!
+            const jamMaghrib = Math.floor(jamMaghribDesimal);
+            const menitMaghrib = Math.floor((jamMaghribDesimal - jamMaghrib) * 60);
+            
+            // Rekayasa variabel 'now' menjadi waktu Maghrib pas hari H rukyat
+            now = new Date(now.getFullYear(), now.getMonth(), now.getDate(), jamMaghrib, menitMaghrib, 0, 0);
+        }
+        // ============================================================
         
         // KOREKSI UTAMA: Panggil fungsi getLastIjtima() Meeus murni
         const ijtima = typeof getLastIjtima === 'function' ? getLastIjtima() : new Date(); 
         
-        // Ambil data kedua mode
+        // Ambil data kedua mode (Menggunakan 'now' yang sudah terkalibrasi)
         const dataHisab = typeof getHijriAstronomical === 'function' ? getHijriAstronomical(lat, lon, now) : {d:0}; 
         const dataHybrid = typeof getHijriHybrid === 'function' ? getHijriHybrid(lat, lon, now) : {d:0}; 
         
