@@ -1601,9 +1601,9 @@ function hitungHilal(lat, lon, customTime = null) {
     try { 
         let now = customTime ? new Date(customTime) : new Date(); 
         
-        // ============================================================
-        // 🔥 LOGIKA PENGUNCI WAKTU MAGHRIB (ANTI-SALAH BACA JAM MALAM)
-        // ============================================================
+        // ==================================
+        // 🔥 LOGIKA PENGUNCI WAKTU MAGHRIB
+        // ==================================
         // 1. Dapatkan data tanggal Hybrid saat ini untuk mendeteksi fase kritis
         const dataHybridCheck = typeof getHijriHybrid === 'function' ? getHijriHybrid(lat, lon, now) : {d:0};
         
@@ -1614,7 +1614,6 @@ function hitungHilal(lat, lon, customTime = null) {
         const jamNowDesimal = now.getHours() + (now.getMinutes() / 60);
         
         // JIKA hari ini adalah tanggal 29 ATAU sudah masuk tanggal 1 malam (setelah Maghrib tanggal 29)
-        // DAN jam perangkat saat ini sudah melewati waktu Maghrib:
         if ((dataHybridCheck.d === 29 || dataHybridCheck.d === 1) && jamNowDesimal >= jamMaghribDesimal) {
             // PAKSA waktu perhitungan dikunci pada titik jam Maghrib hari tersebut!
             const jamMaghrib = Math.floor(jamMaghribDesimal);
