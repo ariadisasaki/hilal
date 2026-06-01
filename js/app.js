@@ -1807,7 +1807,7 @@ function getHijriInsight(data, maghrib, now) {
   let teksWaktuKritis = "";
   if (altAsli < -0.5) { 
     // Jika hilal sudah terbenam (altitude minus)
-    teksWaktuKritis = `<b style="color:#f87171">Waktu Habis:</b> Hilal sudah terbenam di bawah ufuk. Pengamatan visual tidak mungkin dilakukan lagi untuk malam ini.`;
+    teksWaktuKritis = `<b style="color:#f87171">Waktu Habis:</b> Hilal sudah terbenam di bawah ufuk. Pengamatan visual tidak mungkin dilakukan lagi untuk saat ini.`;
   } else if (jamSekarang < maghribDec) {
     // Jika masih siang/sore sebelum maghrib
     teksWaktuKritis = `Lakukan kalibrasi alat sekarang. Pengamatan visual dimulai saat Matahari terbenam (estimasi pukul <b>${formatWaktu(maghribDec)}</b>).`;
